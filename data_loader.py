@@ -1,9 +1,4 @@
 import pandas as pd
-from conditional_distributions.cpd_stability_income import (
-            encode_age_groups, encode_government_employee,
-            encode_highest_education, encode_employment_type,
-            encode_employment_length
-        )
 from constants import *
 
 

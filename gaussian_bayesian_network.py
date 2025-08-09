@@ -4,18 +4,8 @@ import logging
 logging.getLogger('numexpr').setLevel(logging.WARNING) # INFO:numexpr.utils:NumExpr
 from pgmpy.models import LinearGaussianBayesianNetwork
 
-from conditional_distributions.cpd_total_stable_income_monthly import cpd_total_stable_income_monthly
-from conditional_distributions.cpd_stability_income import cpd_stability_income
-from conditional_distributions.cpd_core_net_worth import cpd_core_net_worth
-from conditional_distributions.cpd_defaulted import cpd_defaulted
-from conditional_distributions.cpd_loan_approved import cpd_loan_approved
-from conditional_distributions.cpd_ratio_debt_net_worth import cpd_ratio_debt_net_worth
-from conditional_distributions.cpd_ratio_income_debt import cpd_ratio_income_debt
-from conditional_distributions.cpd_ratio_payment_to_income import cpd_ratio_payment_to_income
-
 from data_loader import LoanDataLoader
 from constants import *
-
 
 
 loan_approval_model = LinearGaussianBayesianNetwork(
@@ -59,13 +49,19 @@ loan_approval_model = LinearGaussianBayesianNetwork(
         ("ratio_debt_net_worth", "loan_approved"),
         ("credit_history", "loan_approved"),
 
+        ("loan_amount","monthly_payment"),
+        ("loan_term","monthly_payment"),
+
+        ("loan_amount","loan_approved"),
+        ("loan_term","loan_approved"),
+
         ("defaulted","loan_approved"),
 
     ]
 )
 
-#viz = loan_approval_model.to_graphviz()
-#viz.draw('random.png', prog='dot')
+viz = loan_approval_model.to_graphviz()
+viz.draw('random.png', prog='dot')
 
 csv_path = "datasets/loan_applications.csv"
 loader = LoanDataLoader()
@@ -78,10 +74,6 @@ if data is None:
 
 all_data = loader.get_all_data_numeric()
 loan_approval_model.fit(all_data)
-
-#print("Nodes in network:", loan_approval_model.nodes())
-#print("Parents of stability_income:", list(loan_approval_model.predecessors('stability_income')))
-#print("CPD expects these parents:", cpd_stability_income.evidence)
 
 try:
     loan_approval_model.check_model()

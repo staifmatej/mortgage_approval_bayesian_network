@@ -1,0 +1,39 @@
+name: Tests & Codestyle
+on:
+  push:
+    branches: main
+  pull_request:
+    branches: main
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+        os: [ubuntu-latest, macos-latest] # Windows doesn't deserve a spot :)
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        cd linear-least-squares-methods
+        python -m pip install --upgrade pip
+        pip install pytest pylint
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    
+    - name: Run pylint
+      working-directory: ./linear-least-squares-methods
+      run: pylint . --disable=C0301,C0103
+    
+    - name: Run pytest
+      working-directory: ./linear-least-squares-methods
+      run: pytest -v
