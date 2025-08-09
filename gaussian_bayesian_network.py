@@ -1,0 +1,91 @@
+import networkx as nx
+import logging
+
+logging.getLogger('numexpr').setLevel(logging.WARNING) # INFO:numexpr.utils:NumExpr
+from pgmpy.models import LinearGaussianBayesianNetwork
+
+from conditional_distributions.cpd_total_stable_income_monthly import cpd_total_stable_income_monthly
+from conditional_distributions.cpd_stability_income import cpd_stability_income
+from conditional_distributions.cpd_core_net_worth import cpd_core_net_worth
+from conditional_distributions.cpd_defaulted import cpd_defaulted
+from conditional_distributions.cpd_loan_approved import cpd_loan_approved
+from conditional_distributions.cpd_ratio_debt_net_worth import cpd_ratio_debt_net_worth
+from conditional_distributions.cpd_ratio_income_debt import cpd_ratio_income_debt
+from conditional_distributions.cpd_ratio_payment_to_income import cpd_ratio_payment_to_income
+
+from data_loader import LoanDataLoader
+from constants import *
+
+
+
+loan_approval_model = LinearGaussianBayesianNetwork(
+    [
+        ("government_employee", "stability_income"),
+        ("age_young", "stability_income"),
+        ("age_prime", "stability_income"),
+        ("age_senior", "stability_income"),
+        ("age_old", "stability_income"),
+        ("len_employment", "stability_income"),
+        ("size_of_company", "stability_income"),
+        ("highest_education", "stability_income"),
+        ("employment_type", "stability_income"),
+
+        ("reported_monthly_income","total_stable_income_monthly"),
+
+        ("stability_income", "total_stable_income_monthly"),
+
+        ("total_stable_income_monthly", "ratio_income_debt"),
+        ("total_existing_debt", "ratio_income_debt"),
+
+        ("investments_value", "ratio_debt_net_worth"),
+        ("property_owned_value", "ratio_debt_net_worth"),
+        ("total_existing_debt", "ratio_debt_net_worth"),
+
+        ("investments_value", "core_net_worth"),
+        ("property_owned_value", "core_net_worth"),
+
+        ("total_existing_debt", "defaulted"),
+        ("total_stable_income_monthly", "defaulted"),
+        ("core_net_worth", "defaulted"),
+        ("housing_status", "defaulted"),
+        ("credit_history", "defaulted"),
+        ("ratio_debt_net_worth", "defaulted"),
+
+        ("monthly_payment", "ratio_payment_to_income"),
+        ("total_stable_income_monthly", "ratio_payment_to_income"),
+        ("ratio_payment_to_income", "defaulted"),
+        ("ratio_payment_to_income", "loan_approved"),
+        ("ratio_income_debt", "loan_approved"),
+        ("ratio_debt_net_worth", "loan_approved"),
+        ("credit_history", "loan_approved"),
+
+        ("defaulted","loan_approved"),
+
+    ]
+)
+
+#viz = loan_approval_model.to_graphviz()
+#viz.draw('random.png', prog='dot')
+
+csv_path = "datasets/loan_applications.csv"
+loader = LoanDataLoader()
+data = loader.load_data(csv_path)
+
+if data is None:
+    print(f"{S_RED}ERROR{E_RED}: Dataset not found. Is {csv_path} correct?")
+    exit(1)
+
+
+all_data = loader.get_all_data_numeric()
+loan_approval_model.fit(all_data)
+
+#print("Nodes in network:", loan_approval_model.nodes())
+#print("Parents of stability_income:", list(loan_approval_model.predecessors('stability_income')))
+#print("CPD expects these parents:", cpd_stability_income.evidence)
+
+try:
+    loan_approval_model.check_model()
+    print(f"{S_GREEN}Model structure is valid!{E_GREEN}")
+except Exception as e:
+    print(f"{S_RED}ERROR{E_RED}: Model validation error: {e}")
+    exit(1)
