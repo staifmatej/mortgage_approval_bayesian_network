@@ -4,8 +4,8 @@ import logging
 logging.getLogger('numexpr').setLevel(logging.WARNING) # INFO:numexpr.utils:NumExpr
 from pgmpy.models import LinearGaussianBayesianNetwork
 
-from data_loader import LoanDataLoader
-from constants import *
+from mortgage_approval_bayesian_network.data_loader import LoanDataLoader
+from mortgage_approval_bayesian_network.constants import *
 
 
 loan_approval_model = LinearGaussianBayesianNetwork(
@@ -61,7 +61,7 @@ loan_approval_model = LinearGaussianBayesianNetwork(
 )
 
 viz = loan_approval_model.to_graphviz()
-viz.draw('random.png', prog='dot')
+viz.draw('diagram_photos/random.png', prog='dot')
 
 csv_path = "datasets/loan_applications.csv"
 loader = LoanDataLoader()

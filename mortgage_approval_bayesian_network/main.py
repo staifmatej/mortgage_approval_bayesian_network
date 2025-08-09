@@ -5,8 +5,8 @@ import pandas as pd
 logging.getLogger('numexpr').setLevel(logging.WARNING) # INFO:numexpr.utils:NumExpr
 from pgmpy.inference import VariableElimination
 
-from gaussian_bayesian_network import loan_approval_model
-from constants import *
+from mortgage_approval_bayesian_network.gaussian_bayesian_network import loan_approval_model
+from mortgage_approval_bayesian_network.constants import *
 
 
 def calculate_monthly_payment(loan_amount, loan_term_years, annual_rate=0.05):

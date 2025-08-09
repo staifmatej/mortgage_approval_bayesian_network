@@ -1,5 +1,5 @@
 import pandas as pd
-from constants import *
+from mortgage_approval_bayesian_network.constants import *
 
 
 class LoanDataLoader:
