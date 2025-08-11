@@ -6,7 +6,7 @@ import os
 # Add parent directory to path to import main module
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from mortgage_approval_bayesian_network.main import collect_user_info
+from main import (collect_user_info)
 
 
 class TestCollectUserInfo(unittest.TestCase):

@@ -1,5 +1,5 @@
 import pandas as pd
-from mortgage_approval_bayesian_network.constants import *
+from constants import *
 
 
 class LoanDataLoader:
@@ -47,7 +47,7 @@ class LoanDataLoader:
         data['government_employee'] = data['government_employee'].map({'yes': 1, 'no': 0})
         data['investments'] = data['investments'].map({'yes': 1, 'no': 0})
         data['housing_status'] = data['housing_status'].map({'own': 2, 'mortgage': 1, 'rent': 0})
-        data['credit_history'] = data['credit_history'].map({'excellent': 3, 'good': 2, 'fair': 1, 'bad': 0})
+        data['credit_history'] = data['credit_history'].map({'excellent': 3, 'good': 2, 'fair': 1, 'bad': 0, 'poor': 0})
         data['highest_education'] = data['highest_education'].map({'phd': 4, 'master': 3, 'bachelor': 2, 'high_school': 1, 'basic': 0})
         data['employment_type'] = data['employment_type'].map({'permanent': 2, 'temporary': 1, 'freelancer': 1, 'unemployed': 0})
         

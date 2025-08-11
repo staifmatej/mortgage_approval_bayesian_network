@@ -1,10 +1,10 @@
 """Global Constants."""
 from colorama import init, Fore, Style
 
-# Initialize colorama - this handles Windows compatibility
+# Initialize colorama: for Windows compatibility.
 init(autoreset=True)
 
-# Global constants using colorama (cross-platform compatible)
+# Global constants using colorama.
 S_BOLD = Style.BRIGHT
 E_BOLD = Style.RESET_ALL
 S_RED = Fore.RED

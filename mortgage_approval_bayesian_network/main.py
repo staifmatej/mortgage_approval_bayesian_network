@@ -5,8 +5,9 @@ import pandas as pd
 logging.getLogger('numexpr').setLevel(logging.WARNING) # INFO:numexpr.utils:NumExpr
 from pgmpy.inference import VariableElimination
 
-from mortgage_approval_bayesian_network.gaussian_bayesian_network import loan_approval_model
-from mortgage_approval_bayesian_network.constants import *
+from data_generation_realistic import encode_age_group
+from gaussian_bayesian_network import loan_approval_model
+from constants import *
 
 
 def calculate_monthly_payment(loan_amount, loan_term_years, annual_rate=0.05):
@@ -21,14 +22,6 @@ def calculate_monthly_payment(loan_amount, loan_term_years, annual_rate=0.05):
                       ((1 + monthly_rate)**n_payments - 1)
     
     return monthly_payment
-
-def encode_age_group(age):
-    """Convert age to age group indicators"""
-    age_young = 1 if 18 <= age < 25 else 0
-    age_prime = 1 if 25 <= age < 40 else 0
-    age_senior = 1 if 40 <= age < 55 else 0
-    age_old = 1 if age >= 55 else 0
-    return age_young, age_prime, age_senior, age_old
 
 def print_wrong_input_message(string: str):
     print(f"{S_YELLOW}Wrong Input{E_YELLOW}: {string}")
@@ -45,7 +38,7 @@ def collect_user_info():
     else:
         interest_rate = float(interest_rate_str)
 
-    avg_salary_str = input(f"Enter the average salary in the Czechia: (default 50000 CZK) ")
+    avg_salary_str = input(f"Enter the average net salary in the Czechia: (default 50000 CZK) ")
     if avg_salary_str == "":
         avg_salary = 50000
     else:
@@ -67,10 +60,13 @@ def collect_user_info():
                 except Exception as e:
                     print_wrong_input_message(f"{e}. [{i+1}/3]")
                     continue
-                if age <= 0 or age >= 100:
-                    print_wrong_input_message(f"Please enter age between 0 and 100. [{i+1}/3]")
+                if age < 18:
+                    print_wrong_input_message(f"Age must be at least 18. [{i + 1}/3]")
                     continue
-                if age > 0 and age < 100:
+                if age > 65:
+                    print_wrong_input_message(f"Sorry, we don't provide new mortgages to people over 65. [{i+1}/3]")
+                    continue
+                if age >= 18 and age <= 65:
                     break
 
         # government_employee
@@ -359,6 +355,21 @@ def calculate_approval_manually(evidence):
         beta = cpd_loan_approved.beta
         evidence_vars = cpd_loan_approved.evidence
         
+        # DEBUG: Print CPD parameters
+        print(f"\n{S_CYAN}=== DEBUG: loan_approved CPD Parameters ==={E_CYAN}")
+        print(f"Evidence variables: {evidence_vars}")
+        print(f"Beta coefficients shape: {beta.shape}")
+        print(f"Beta coefficients: {beta}")
+        print(f"Beta intercept (beta[0]): {beta[0]}")
+        # LinearGaussianCPD doesn't have variance attribute
+        # print(f"Variance: {cpd_loan_approved.variance}")
+        
+        # Print beta coefficients with variable names
+        print(f"\n{S_YELLOW}Beta coefficients breakdown:{E_YELLOW}")
+        print(f"  Intercept: {beta[0]:.6f}")
+        for i, var in enumerate(evidence_vars):
+            print(f"  {var}: {beta[i+1]:.6f}")
+        
         # Build evidence vector
         evidence_vector = [1]  # intercept
         for var in evidence_vars:
@@ -367,15 +378,79 @@ def calculate_approval_manually(evidence):
         # Calculate linear combination
         score = np.dot(beta, evidence_vector)
         
-        # Convert to probability (sigmoid)
-        prob = 1 / (1 + np.exp(-score))
+        # DEBUG: Print the raw score before sigmoid
+        print(f"\n{S_GREEN}Raw score (linear combination):{E_GREEN} {score:.6f}")
+        print(f"This raw score IS the predicted loan_approved value from the Linear Gaussian model")
         
-        return prob
+        # The model was trained with loan_approved values between 0 and 1
+        # So the raw score should be used directly, not transformed!
+        print(f"\n{S_RED}IMPORTANT FINDING:{E_RED}")
+        print(f"The training data has loan_approved values between 0 and 1 (probabilities)")
+        print(f"LinearGaussianBayesianNetwork predicts these values directly")
+        print(f"NO sigmoid transformation is needed!")
+        
+        # Clip the score to [0, 1] range since it's a probability
+        prob_direct = np.clip(score, 0, 1)
+        
+        # Show both interpretations
+        prob_sigmoid = 1 / (1 + np.exp(-score))
+        print(f"\n{S_YELLOW}Comparison:{E_YELLOW}")
+        print(f"  Direct interpretation (correct): {prob_direct:.6f}")
+        print(f"  With sigmoid (incorrect): {prob_sigmoid:.6f}")
+        print("-" * 70)
+        
+        # Return the direct interpretation
+        return prob_direct
     except Exception as e:
         print(f"Error in manual calculation: {e}")
         return 0.5
 
+def analyze_loan_approved_values():
+    """Analyze the values of loan_approved in the training data"""
+    try:
+        from data_loader import LoanDataLoader
+        loader = LoanDataLoader()
+        data = loader.load_data("datasets/mortgage_applications.csv")
+        all_data = loader.get_all_data_numeric()
+        
+        if 'loan_approved' in all_data.columns:
+            loan_values = all_data['loan_approved']
+            print(f"\n{S_CYAN}=== Training Data Analysis for loan_approved ==={E_CYAN}")
+            print(f"Unique values: {loan_values.unique()}")
+            print(f"Min value: {loan_values.min()}")
+            print(f"Max value: {loan_values.max()}")
+            print(f"Mean value: {loan_values.mean():.4f}")
+            print(f"Std deviation: {loan_values.std():.4f}")
+            print(f"Value counts:\n{loan_values.value_counts()}")
+            print("-" * 70)
+    except Exception as e:
+        print(f"Error analyzing training data: {e}")
+
+def test_inference_methods(evidence):
+    """Test different inference methods to understand the model"""
+    try:
+        print(f"\n{S_CYAN}=== Model Structure ==={E_CYAN}")
+        
+        # For LinearGaussianBayesianNetwork, show CPD structure
+        print(f"Model type: LinearGaussianBayesianNetwork")
+        print(f"Number of nodes: {len(loan_approval_model.nodes())}")
+        print(f"Number of edges: {len(loan_approval_model.edges())}")
+        
+        # Show CPDs instead of factors
+        cpds = loan_approval_model.get_cpds()
+        print(f"Number of CPDs: {len(cpds)}")
+        
+        # Note: LinearGaussianBayesianNetwork doesn't support standard inference engines
+        print(f"\n{S_YELLOW}Note:{E_YELLOW} LinearGaussianBayesianNetwork requires manual computation")
+        print("Standard inference engines (VariableElimination) are not supported.")
+        
+    except Exception as e:
+        print(f"Error in model testing: {e}")
+
 def main():
+    # Analyze the training data first
+    # analyze_loan_approved_values()
+
     # Collect user information
     user_info = collect_user_info()
     
@@ -394,6 +469,7 @@ def main():
     print("-" * 70)
     
     results = []
+    first_run = True
     
     for loan_term in loan_terms:
         loan_amount = min_amount
@@ -401,9 +477,110 @@ def main():
             # Prepare evidence
             evidence = prepare_evidence(user_info, loan_amount, loan_term)
             
-            # Calculate approval probability
+            # For the first scenario, test inference methods
+            if first_run:
+                test_inference_methods(evidence)
+                first_run = False
+            
+            # Calculate approval probability manually
             try:
-                approval_prob = calculate_approval_manually(evidence)
+                # For LinearGaussianBayesianNetwork, we need to compute intermediate values
+                # First, calculate all intermediate nodes
+                
+                # Calculate stability_income
+                stability_cpd = loan_approval_model.get_cpds('stability_income')
+                stability_vars = ['government_employee', 'age_young', 'age_prime', 'age_senior', 
+                                'age_old', 'len_employment', 'size_of_company', 'highest_education', 
+                                'employment_type']
+                stability_evidence = [1] + [evidence.get(var, 0) for var in stability_vars]
+                stability_income = np.dot(stability_cpd.beta, stability_evidence)
+                
+                # Calculate total_stable_income_monthly
+                income_cpd = loan_approval_model.get_cpds('total_stable_income_monthly')
+                income_evidence = [1, evidence['reported_monthly_income'], stability_income]
+                total_stable_income = np.dot(income_cpd.beta, income_evidence)
+                
+                # Calculate ratios
+                total_debt = evidence.get('total_existing_debt', 0)
+                investments = evidence.get('investments_value', 0)
+                property_value = evidence.get('property_owned_value', 0)
+                
+                # Avoid division by zero
+                if total_stable_income > 0:
+                    ratio_income_debt = total_debt / total_stable_income
+                    ratio_payment_to_income = monthly_payment / total_stable_income
+                else:
+                    ratio_income_debt = 0
+                    ratio_payment_to_income = 0
+                
+                net_worth = investments + property_value
+                if net_worth > 0:
+                    ratio_debt_net_worth = total_debt / net_worth
+                else:
+                    ratio_debt_net_worth = 0
+                
+                # Calculate defaulted score
+                defaulted_cpd = loan_approval_model.get_cpds('defaulted')
+                defaulted_vars = defaulted_cpd.evidence
+                defaulted_evidence = [1]  # intercept
+                for var in defaulted_vars:
+                    if var == 'total_existing_debt':
+                        defaulted_evidence.append(total_debt)
+                    elif var == 'total_stable_income_monthly':
+                        defaulted_evidence.append(total_stable_income)
+                    elif var == 'core_net_worth':
+                        defaulted_evidence.append(net_worth)
+                    elif var == 'housing_status':
+                        defaulted_evidence.append(evidence.get('housing_status', 0))
+                    elif var == 'credit_history':
+                        defaulted_evidence.append(evidence.get('credit_history', 0))
+                    elif var == 'ratio_debt_net_worth':
+                        defaulted_evidence.append(ratio_debt_net_worth)
+                    elif var == 'ratio_payment_to_income':
+                        defaulted_evidence.append(ratio_payment_to_income)
+                    else:
+                        defaulted_evidence.append(0)
+                
+                defaulted_score = np.dot(defaulted_cpd.beta, defaulted_evidence)
+                
+                # Finally, calculate loan approval
+                approval_cpd = loan_approval_model.get_cpds('loan_approved')
+                approval_evidence = [1]  # intercept
+                for var in approval_cpd.evidence:
+                    if var == 'ratio_payment_to_income':
+                        approval_evidence.append(ratio_payment_to_income)
+                    elif var == 'ratio_income_debt':
+                        approval_evidence.append(ratio_income_debt)
+                    elif var == 'ratio_debt_net_worth':
+                        approval_evidence.append(ratio_debt_net_worth)
+                    elif var == 'credit_history':
+                        approval_evidence.append(evidence.get('credit_history', 0))
+                    elif var == 'loan_amount':
+                        approval_evidence.append(loan_amount)
+                    elif var == 'loan_term':
+                        approval_evidence.append(loan_term)
+                    elif var == 'defaulted':
+                        approval_evidence.append(defaulted_score)
+                    else:
+                        approval_evidence.append(0)
+                
+                approval_score = np.dot(approval_cpd.beta, approval_evidence)
+                approval_prob = np.clip(approval_score, 0, 1)
+                
+                # Apply age-based penalty (since model doesn't have enough data for older people)
+                age = user_info['age']
+                if age >= 50:
+                    # Reduce approval probability for older applicants
+                    # Age 50: multiply by 0.9, Age 60: multiply by 0.5, Age 65: multiply by 0.2
+                    age_factor = max(0.2, 1.0 - (age - 45) * 0.03)
+                    approval_prob *= age_factor
+                
+                # Also penalize if loan term extends past retirement age (65)
+                end_age = age + loan_term
+                if end_age > 65:
+                    # Reduce probability based on how far past retirement the loan extends
+                    retirement_factor = max(0.1, 1.0 - (end_age - 65) * 0.05)
+                    approval_prob *= retirement_factor
                 monthly_payment = evidence['monthly_payment']
                 
                 # Store result
