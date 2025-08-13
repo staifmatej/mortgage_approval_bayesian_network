@@ -72,7 +72,7 @@ class GaussianBayesianNetwork():
     def save_diagram_of_gbn(self):
         if self.save_diagram:
             viz = self.loan_approval_model.to_graphviz()
-            viz.draw('diagram_photos/random.png', prog='dot')
+            viz.draw('diagram_photos/bayesian_network_default.png', prog='dot')
 
     def handle_datasets_from_training(self):
         loader = LoanDataLoader()
