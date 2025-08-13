@@ -1,3 +1,4 @@
+"""Module for interactive 'Press Enter to continue' functionality with animated dots."""
 import sys
 import select
 import tty
@@ -5,7 +6,7 @@ import termios
 
 
 def print_press_enter_to_continue():
-    """Function print message to console with effects of loading dots."""
+    """Display animated 'Press Enter to continue' prompt with dot animation."""
 
     # Check if running in Jupyter/IPython
     try:

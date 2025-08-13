@@ -1,3 +1,4 @@
+"""Main module for mortgage approval prediction system with user interaction interface."""
 import numpy as np
 import pandas as pd
 import os
@@ -8,7 +9,7 @@ from data_generation_realistic import encode_age_group
 from gaussian_bayesian_network import GaussianBayesianNetwork
 from data_generation_realistic import DataGenerator
 from utils.error_print import *
-from utils.constants import *
+from utils.constants import S_RED, E_RED, S_GREEN, E_GREEN, S_YELLOW, E_YELLOW, S_CYAN, E_CYAN
 from utils.print_press_enter_to_continue import *
 
 warnings.filterwarnings('ignore', category=RuntimeWarning)
@@ -18,15 +19,17 @@ BILLION = int(1e9)
 MILLION = int(1e6)
 
 class InputHandler():
+    """Handles user input collection and mortgage approval prediction workflow."""
 
     def __init__(self):
+        """Initialize InputHandler with default parameters for mortgage calculations."""
         self.csv_path = "datasets/mortgage_applications.csv"
         self.avg_salary = 35000     # Average salary in Czechia in 2025.
         self.interest_rate = 0.045  # 4.5% p.a.
         self.data_num_records = 1e4 # Perfect balance between speed and data amount.
 
     def validate_input_alpha(self, prompt, valid_options, max_attempts=3, error_msg=None):
-        """Validates user input with retry mechanism"""
+        """Validate alphabetic user input against list of valid options with retry mechanism."""
 
         for i in range(max_attempts + 1):
             if i >= max_attempts:
@@ -36,17 +39,18 @@ class InputHandler():
             except Exception as e:
                 print_invalid_input(f"{e}. [{i+1}/{max_attempts}]")
                 continue
-                
+
             if user_input in valid_options:
                 return user_input
-                
+
             if error_msg is None:
                 options_str = '", "'.join(valid_options)
                 error_msg = f'Please enter "{options_str}"'
-                
+
             print_invalid_input(f"{error_msg}. [{i+1}/{max_attempts}]")
 
     def validate_input_numerical(self, prompt, min_val=None, max_val=None, default_val=None, max_attempts=3, data_type=float):
+        """Validate numerical user input within specified range with type conversion."""
         """
         Validates numerical input with range validation
         """
@@ -57,49 +61,52 @@ class InputHandler():
             if i >= max_attempts:
                 print_error_handling("Error loading numerical input")
                 return None
-                
+
             try:
                 user_input = input(prompt).strip()
-                
+
                 if user_input == "" and default_val is not None:
                     return default_val
-                    
+
                 value = data_type(user_input)
                 if data_type == float:
                     value = np.round(value, 0)
-                
+
                 if min_val is not None and value < min_val:
                     print_invalid_input(f"Value must be at least {min_val}. [{i+1}/{max_attempts}]")
                     continue
-                    
+
                 if max_val is not None and value > max_val:
                     print_invalid_input(f"Value must be at most {max_val}. [{i+1}/{max_attempts}]")
                     continue
-                    
+
                 return value
-                
+
             except ValueError:
                 print_invalid_input(f"Please enter a valid number. [{i+1}/{max_attempts}]")
                 continue
             except Exception as e:
                 print_invalid_input(f"{e}. [{i+1}/{max_attempts}]")
                 continue
-        
+
         return None
 
     def generate_csv_dataset(self):
+        """Generate synthetic mortgage application dataset based on configured parameters."""
         dataCreate = DataGenerator(self.avg_salary, self.interest_rate, int(self.data_num_records))
         print(f"\n{S_CYAN}Generating realistic synthetic dataset with {int(self.data_num_records):,} records...{E_CYAN}")
         dataCreate.generate_realistic_data(True)
         dataCreate.remove_wrong_rows(False, None)
 
     def train_and_validate_gbn(self):
+        """Train and validate Gaussian Bayesian Network model on mortgage data."""
         print(f"{S_CYAN}Training & Validate Gaussain Bayesain Network...{E_CYAN}")
         model_gbn = GaussianBayesianNetwork(True, self.csv_path, self.avg_salary)
         model_gbn.check_model_gbn()
         return model_gbn
 
     def collect_datasets_user_info(self):
+        """Collect user input for dataset generation or selection of existing dataset."""
         dataset_choice = self.validate_input_alpha(
             "\nWould you like to use your own dataset or generate a new one? (own/generate): ",
             ["own", "generate", "g", "o", "ow", "ge", "gen", "gene", "gener", "genera", "generat"],
@@ -128,6 +135,7 @@ class InputHandler():
                 self.csv_path = custom_path
 
     def collect_main_user_info(self):
+        """Collect main financial parameters from user for mortgage calculations."""
         print(f"\n{S_CYAN} ══════ Welcome to the BayesianHill Bank & Co. - Mortgage Approval System ══════ {E_CYAN}")
 
         self.interest_rate = self.validate_input_numerical("\nEnter the interest rate at which we will lend the mortgage (from 0 to 0.27; default 0.05): ", min_val=0, max_val=0.27, default_val=0.05, max_attempts=3, data_type=float)
@@ -138,15 +146,16 @@ class InputHandler():
 
 
     def collect_other_user_info(self):
+        """Collect detailed applicant information including demographics and financial status."""
         print(f"\nPlease enter mortgage applicant information:\n")
-        
+
         age = self.validate_input_numerical(
             "Age: ",
             min_val=18,
             max_val=65,
             data_type=int
         )
-        
+
         government_employee = self.validate_input_alpha(
             "Government employee? (yes/no): ",
             ["yes", "no"]
@@ -157,7 +166,7 @@ class InputHandler():
         min_bachelor_age = min_high_school_age + 1
         min_master_age = min_bachelor_age + 1
         min_phd_age = min_master_age + 2
-        
+
         # Validate education with age constraints (up to 3 attempts)
         education_age_map = {
             "phd": (min_phd_age, "PhD"),
@@ -165,13 +174,13 @@ class InputHandler():
             "bachelor": (min_bachelor_age, "bachelor's"),
             "high_school": (min_high_school_age, "high school")
         }
-        
+
         for attempt in range(3):
             highest_education = self.validate_input_alpha(
                 "Highest education (basic/high_school/bachelor/master/phd): ",
                 ["basic", "high_school", "bachelor", "master", "phd"]
             )
-            
+
             # Check if education is valid for the given age
             if highest_education in education_age_map:
                 min_age, degree_name = education_age_map[highest_education]
@@ -191,7 +200,7 @@ class InputHandler():
             "Is mortgage applicant student? (yes/no): ",
             ["yes", "no"]
         )
-        
+
         if study_status == "yes":
             employment_type = "unemployed"
             len_employment = 0
@@ -221,7 +230,7 @@ class InputHandler():
                     max_val=age-max_study_time,
                     data_type=int
                 )
-                
+
                 size_of_company = self.validate_input_numerical(
                     "Number of company employees, where applicant works: ",
                     min_val=0,
@@ -231,26 +240,26 @@ class InputHandler():
             else:
                 len_employment = 0
                 size_of_company = 0
-        
+
         reported_monthly_income = self.validate_input_numerical(
             "Monthly income (in Czech Crowns): ",
             min_val=0,
             max_val=TRILLION,
             data_type=float
         )
-        
+
         total_existing_debt = self.validate_input_numerical(
             "Total existing debt (in Czech Crowns): ",
             min_val=0,
             max_val=TRILLION,
             data_type=float
         )
-        
+
         extra_net_worth = self.validate_input_alpha(
             "Do you have investments or do you owned property? (yes/no): ",
             ["yes", "no"]
         )
-        
+
         if extra_net_worth == "yes":
             investments_value = self.validate_input_numerical(
                 "Investments value (in Czech Crowns): ",
@@ -258,7 +267,7 @@ class InputHandler():
                 max_val=TRILLION,
                 data_type=float
             )
-            
+
             property_owned_value = self.validate_input_numerical(
                 "Property owned value (in Czech Crowns): ",
                 min_val=0,
@@ -268,7 +277,7 @@ class InputHandler():
         else:
             investments_value = 0
             property_owned_value = 0
-        
+
         housing_status = self.validate_input_alpha(
             "Housing status (rent/mortgage/own/homeless): ",
             ["rent", "mortgage", "own", "homeless"]
@@ -300,6 +309,7 @@ class InputHandler():
         }
 
     def calculate_monthly_payment(self, loan_amount, loan_term):
+        """Calculate monthly payment using standard amortization formula."""
         """Calculate monthly payment based on interest rate, loan amount and term."""
         la = loan_amount
         annual_rate = self.interest_rate
@@ -313,25 +323,26 @@ class InputHandler():
 
         if r == 0:  # Handle zero interest rate
             return la / loan_term_months
-        
+
         return la * r / (1 - (1 + r) ** (-loan_term_months))
 
     def predict_loan_approval(self, model_gbn, mortgage_applicant_data, loan_amount, loan_term):
+        """Predict loan approval probability using trained Bayesian Network model."""
         """Predict loan approval probability using trained GBN model"""
-        
+
         age_young, age_prime, age_senior, age_old = encode_age_group(mortgage_applicant_data['age'])
-        
+
         housing_map = {'rent': 0, 'mortgage': 1, 'own': 2}
         credit_map = {'bad': 0, 'fair': 1, 'good': 2, 'excellent': 3}
         education_map = {'basic': 0, 'high_school': 1, 'bachelor': 2, 'master': 3, 'phd': 4}
         employment_map = {'unemployed': 0, 'temporary': 1, 'freelancer': 1, 'permanent': 2}
-        
+
         monthly_payment = self.calculate_monthly_payment(loan_amount, loan_term)
-        
+
         evidence = {
             'government_employee': 1 if mortgage_applicant_data['government_employee'] == 'yes' else 0,
             'age_young': age_young,
-            'age_prime': age_prime, 
+            'age_prime': age_prime,
             'age_senior': age_senior,
             'age_old': age_old,
             'highest_education': education_map.get(mortgage_applicant_data['highest_education'], 0),
@@ -352,11 +363,11 @@ class InputHandler():
         try:
             evidence_df = pd.DataFrame([evidence])  # Convert dict to DataFrame
             result = model_gbn.loan_approval_model.predict(evidence_df)
-            
+
             if isinstance(result, tuple) and len(result) >= 2:
                 variables_list = result[0]
                 mean_values = result[1]
-                
+
                 if 'loan_approved' in variables_list:
                     idx = variables_list.index('loan_approved')
                     approval_prob = mean_values[0][idx]  # First row, idx column
@@ -369,7 +380,7 @@ class InputHandler():
             approval_prob = max(0, min(1, approval_prob))
 
             return approval_prob
-            
+
         except Exception as e:
             print_error_handling(f"Prediction failed: {e}")
             import traceback
@@ -377,6 +388,7 @@ class InputHandler():
             return 0.0
 
     def print_mortgage_applicant_info(self, mortgage_applicant_data, loan_amount, loan_term):
+        """Display formatted mortgage application details in tabular format."""
         applicant_info = [
             ["Age", f"{mortgage_applicant_data['age']} years"],
             ["Government Employee", mortgage_applicant_data['government_employee'].capitalize()],
@@ -401,6 +413,7 @@ class InputHandler():
         print(tabulate.tabulate(applicant_info, tablefmt="rounded_grid", stralign="left"))
 
     def options(self):
+        """Display menu options and get user choice for program actions."""
         print("\n══════ Options ══════")
         print("1. Generate new dataset")
         print("2. Process new mortgage applicant")
@@ -422,6 +435,7 @@ class InputHandler():
                 print_invalid_input(f"Please enter a valid number. [{i}/3]")
 
     def print_mortgage_approval_prob(self, mortgage_applicant_data, model_gbn, loan_amount, loan_term):
+        """Display loan approval probability with color-coded output based on approval status."""
         if mortgage_applicant_data["housing_status"] == "homeless":
             approval_prob = 0.0
             print(f"\n{S_RED}Loan automatically rejected: no permanent residence{E_RED}")
@@ -436,6 +450,7 @@ class InputHandler():
             print(f"\nMortgage approval probability: {S_YELLOW}{approval_prob:.1%}{E_YELLOW}")
 
     def main(self):
+        """Main program loop handling menu navigation and user interactions."""
         # handle first-ever program running.
         self.set_up_all()
         print_press_enter_to_continue()
@@ -452,11 +467,13 @@ class InputHandler():
 
 
     def set_up_only_dataset(self):
+        """Set up only dataset generation without model training or prediction."""
         self.collect_datasets_user_info()
         self.generate_csv_dataset()
 
 
     def set_up_all(self):
+        """Complete setup including dataset generation, model training, and prediction workflow."""
         self.collect_main_user_info()
         self.collect_datasets_user_info()
         self.generate_csv_dataset()
@@ -469,7 +486,7 @@ class InputHandler():
             max_val=TRILLION,
             data_type=int
         )
-        
+
         loan_term = self.validate_input_numerical(
             "Enter loan term (years): ",
             min_val=1,

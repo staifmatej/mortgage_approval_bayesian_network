@@ -1,4 +1,4 @@
-"""Global Constants."""
+"""Module containing color constants for terminal output formatting."""
 from colorama import init, Fore, Style
 
 # Initialize colorama: for Windows compatibility.

@@ -1,3 +1,4 @@
+"""Pytest configuration module for suppressing package resource warnings."""
 import warnings
 import sys
 

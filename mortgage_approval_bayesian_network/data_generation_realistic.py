@@ -1,14 +1,17 @@
+"""Module for generating realistic synthetic mortgage application data with various financial and demographic features."""
+# pylint: disable=too-many-lines
 import csv
 import os
 import random
 import time
 import math
+import warnings
 import pandas as pd
 import numpy as np
-import warnings
 from scipy.stats import beta
 
-from utils.error_print import *
+from utils.constants import S_RED, E_RED
+from utils.error_print import print_error_handling
 
 warnings.filterwarnings("ignore", message=".*rich is experimental.*")
 
@@ -21,6 +24,7 @@ def encode_age_group(age):
     return age_young, age_prime, age_senior, age_old
 
 class DataGenerator:
+    """Generates synthetic mortgage application data with realistic financial distributions and relationships."""
     def __init__(self, avg_salary, interest_rate, num_records):
         self.avg_salary = avg_salary
         self.interest_rate = interest_rate
@@ -48,6 +52,7 @@ class DataGenerator:
             print_error_handling("interest rate must be greater than zero.")
 
     def initialize_header(self):
+        """Initialize CSV file with header row containing all feature column names."""
         self.create_folder()
         self.seed_random()
         with open(self.csv_path, mode="w", newline="", encoding="utf-8") as file:
@@ -81,23 +86,33 @@ class DataGenerator:
                                        "loan_approved"])
 
     def generate_stability_len_employment(self, len_employment):
-        if len_employment < 1:  return 0
-        if len_employment < 5:  return 10
-        if len_employment < 10: return 20
-        if len_employment < 20: return 30
-        if len_employment < 30: return 35
+        """Calculate employment stability score based on years of employment."""
+        if len_employment < 1:
+            return 0
+        if len_employment < 5:
+            return 10
+        if len_employment < 10:
+            return 20
+        if len_employment < 20:
+            return 30
+        if len_employment < 30:
+            return 35
         return 0
 
     def create_folder(self):
+        """Create datasets directory if it doesn't exist."""
         os.makedirs("datasets", exist_ok=True)
 
     def seed_random(self):
+        """Seed random number generator with current time for reproducibility."""
         random.seed(time.time())
 
     def generate_random_float_from_0_to_1(self):
+        """Generate random float between 0 and 1."""
         return random.random()
 
     def generate_base_value_property(self, reported_monthly_income):
+        """Generate property value based on monthly income with realistic multiplier."""
         base_value_property = reported_monthly_income * self.generate_random_int_from_x_to_y(100, 270)
         base_value_property = math.ceil(base_value_property / 1000) * 1000
         return base_value_property
@@ -115,12 +130,15 @@ class DataGenerator:
         return (savings_for_investments_per_year * (((1.08)**investment_interval-1)/0.08)*1.08) # SPY has historically 7-9% annually return.
 
     def generate_random_int_from_x_to_y(self, x_from, y_to):
+        """Generate random integer between x_from and y_to inclusive."""
         return random.randint(x_from, y_to)
 
     def remove_wrong_rows(self, debug_print=False, pbar=None):
+        """Remove rows with invalid data and ensure decimal precision constraints."""
         df = pd.read_csv(self.csv_path)
 
-        if pbar is not None: pbar.update(1)
+        if pbar is not None:
+            pbar.update(1)
 
         def has_max_5_decimals(x):
             str_x = str(x)
@@ -142,7 +160,8 @@ class DataGenerator:
         mask_9 = df['ratio_debt_net_worth'].apply(has_max_5_decimals)
 
 
-        if pbar is not None: pbar.update(1)
+        if pbar is not None:
+            pbar.update(1)
         mask_defaulted = df['defaulted'] != 0
 
         # Keep only rows where all conditions are met
@@ -153,11 +172,13 @@ class DataGenerator:
             removed_rows = len(df) - len(df_clean)
             print(f"Removed {removed_rows} rows (unrounded values or defaulted=0)")
 
-        if pbar is not None: pbar.update(1)
+        if pbar is not None:
+            pbar.update(1)
 
         df_clean.to_csv(self.csv_path, index=False)
 
     def find_thresholds_for_col(self, column_name: str) -> list:
+        """Calculate percentile thresholds for a given column."""
         df = pd.read_csv(self.csv_path)
         values = df[column_name]
         thresholds = []
@@ -169,12 +190,14 @@ class DataGenerator:
         return thresholds
 
     def delete_invalid_rows(self, df):
+        """Remove rows where age group indicators don't sum to exactly 1."""
         df["age_sum"] = df["age_young"] + df["age_prime"] + df["age_senior"] + df["age_old"]
         df = df[df['age_sum'] == 1]
         df = df.drop('age_sum', axis=1)
         return df
 
     def round_values(self, df):
+        """Round numeric columns to appropriate decimal places based on their type."""
         integer_columns = ['id', 'len_employment',
                            'size_of_company', 'loan_term',
                            'age_young', 'age_prime',
@@ -208,12 +231,15 @@ class DataGenerator:
         return df
 
     def delete_negative_payments(self, df):
+        """Remove rows with negative monthly payment values."""
         df = df[df["monthly_payment"] > 0]
         return df
 
     def run_defaulted_generation(self, pbar):
+        """Generate default risk scores based on multiple financial indicators."""
         df = pd.read_csv(self.csv_path)
-        if pbar is not None: pbar.update(1)
+        if pbar is not None:
+            pbar.update(1)
         df = self.delete_negative_payments(df)
         df = self.delete_invalid_rows(df)
         df = self.round_values(df)
@@ -233,14 +259,15 @@ class DataGenerator:
         debt_worth_risk = df["ratio_debt_net_worth"].clip(0, 1)
         df["defaulted"] += np.where(df["ratio_debt_net_worth"] != 0, debt_worth_risk * 0.10, 0)
 
-        if pbar is not None: pbar.update(1)
+        if pbar is not None:
+            pbar.update(1)
         income_risk = 1 - df["ratio_income_to_avg_salary"].clip(0, 1)
         df["defaulted"] += income_risk * 0.15
 
         df.loc[df["housing_status"] == "own", "defaulted"] *= 0.85      # 15% risk reduction
         df.loc[df["housing_status"] == "mortgage", "defaulted"] *= 1.05  # 5% risk increase
         df.loc[df["housing_status"] == "rent", "defaulted"] *= 1.15      # 15% risk increase
-        
+
         df.loc[df["credit_history"] == "excellent", "defaulted"] *= 0.5  # 50% risk reduction
         df.loc[df["credit_history"] == "good", "defaulted"] *= 0.75      # 25% risk reduction
         df.loc[df["credit_history"] == "fair", "defaulted"] *= 1.25      # 25% risk increase
@@ -249,11 +276,13 @@ class DataGenerator:
         df["defaulted"] = df["defaulted"].clip(0, 100)
         df["defaulted"] = np.round(df["defaulted"], 4)
 
-        if pbar is not None: pbar.update(1)
+        if pbar is not None:
+            pbar.update(1)
         df.to_csv(self.csv_path, index=False)
 
 
     def generate_realistic_data(self, progress_bar=True):
+        """Generate complete synthetic mortgage application dataset with all features."""
         self.initialize_header()
         print()
 
@@ -292,33 +321,30 @@ class DataGenerator:
         print("")
 
     def analyze_distribution(self, column_name="loan_approved", bins=10):
-        """
-        Analyzes distribution of values in specified column
-        Shows percentage of values in each 10% range (0-10, 10-20, etc.)
-        """
+        """Analyze and visualize the distribution of a specified column."""
         df = pd.read_csv(self.csv_path)
-        
+
         if column_name not in df.columns:
             print(f"Column '{column_name}' not found in dataset")
             return
-        
+
         max_value = df[column_name].max()
         min_value = df[column_name].min()
-        
+
         if max_value <= 1.1:
             bin_edges = np.linspace(0, 1, bins + 1)
             labels = [f"{int(i*10)}-{int((i+1)*10)}" for i in range(bins)]
         else:
             bin_edges = np.linspace(0, 100, bins + 1)
             labels = [f"{int(i*10)}-{int((i+1)*10)}" for i in range(bins)]
-        
+
         counts, _ = np.histogram(df[column_name], bins=bin_edges)
         percentages = (counts / len(df)) * 100
-        
+
         print(f"\nDistribution analysis for '{column_name}':")
         print(f"Min: {min_value:.4f}, Max: {max_value:.4f}, Mean: {df[column_name].mean():.4f}")
         print("-" * 30)
-        
+
         for i, (label, pct) in enumerate(zip(labels, percentages)):
             bar = "█" * int(pct / 2)
             if label == "0-10":
@@ -332,25 +358,28 @@ class DataGenerator:
         print(f"Total records: {len(df)}")
 
     def calculate_loan_approved(self, pbar=None):
+        """Calculate loan approval probabilities based on default scores and financial ratios."""
         df = pd.read_csv(self.csv_path)
 
-        if pbar is not None: pbar.update(1)
+        if pbar is not None:
+            pbar.update(1)
 
         df["defaulted"] = df["defaulted"].clip(0, 2)
 
         max_defaulted = max(df["defaulted"])
         df["loan_approved"] = max_defaulted
         df["loan_approved"] = df["loan_approved"] - df["defaulted"]
-        
+
         df.loc[df["credit_history"] == "excellent", "loan_approved"] *= 1.1
         df.loc[df["credit_history"] == "good", "loan_approved"] *= 1.05
         df.loc[df["credit_history"] == "fair", "loan_approved"] *= 1.01
         df.loc[df["credit_history"] == "bad", "loan_approved"] *= 0.7
-        if pbar is not None: pbar.update(1)
+        if pbar is not None:
+            pbar.update(1)
 
         df["loan_approved"] -= df["ratio_payment_to_income"]*2
         df["loan_approved"] -= df["ratio_debt_net_worth"]
-        
+
         # Convert to probability using sigmoid function
         # This maps values from (-inf, inf) to (0, 1)
         df["loan_approved"] = 1 / (1 + np.exp(-df["loan_approved"]))
@@ -370,23 +399,29 @@ class DataGenerator:
         df["loan_approved"] = np.round(df["loan_approved"], 5)
         df["loan_approved"] = df["loan_approved"].clip(0, 1)
 
-        if pbar is not None: pbar.update(1)
+        if pbar is not None:
+            pbar.update(1)
         df.to_csv(self.csv_path, index=False)
 
 
     def run_ratios_standardization(self, pbar):
+        """Standardize financial ratios to prevent extreme values and improve model stability."""
         df = pd.read_csv(self.csv_path)
-        if pbar is not None: pbar.update(1)
+        if pbar is not None:
+            pbar.update(1)
         for ratio in ["ratio_payment_to_income", "ratio_income_debt", "ratio_debt_net_worth", "ratio_income_to_avg_salary"]:
             thresholds_ratio = self.find_thresholds_for_col(ratio)
             values = df[ratio].values
             thresholds = np.array(thresholds_ratio)
             positions = np.searchsorted(thresholds, values) / 100
             df[ratio] = np.round(positions, 5)
-            if pbar is not None: pbar.update(1)
+            if pbar is not None:
+                pbar.update(1)
         df.to_csv(self.csv_path, index=False)
 
     def run_data_generation(self, writer, pbar=None):
+        """Generate individual records with all features using realistic distributions."""
+        # pylint: disable=too-many-locals,too-many-statements,too-many-branches,cell-var-from-loop,chained-comparison,pointless-string-statement
         for i in range(self.num_records):
 
             defaulted = 0
@@ -522,24 +557,30 @@ class DataGenerator:
 
             def generate_study_status():
                 """Study status is for people who are actively still studying."""
+                # pylint: disable=too-many-branches
                 if age > 26 and highest_education != "master":
                     r = self.generate_random_float_from_0_to_1()
                     if r >= 0 and r < 0.99:
                         return "no"
-                    else:
-                        return "yes"
+                    return "yes"
                 if age <= 18 and highest_education == "basic":
                     r = self.generate_random_float_from_0_to_1()
-                    if r >= 0 and r < 0.05: return "no"
-                    if r >= 0.05 and r <= 1: return "yes"
+                    if r >= 0 and r < 0.05:
+                        return "no"
+                    if r >= 0.05 and r <= 1:
+                        return "yes"
                 if age <= 23 and highest_education == "high_school":
                     r = self.generate_random_float_from_0_to_1()
-                    if r >= 0 and r < 0.7: return "no"
-                    if r >= 0.7 and r <= 1: return "yes"
+                    if r >= 0 and r < 0.7:
+                        return "no"
+                    if r >= 0.7 and r <= 1:
+                        return "yes"
                 if age <= 25 and highest_education == "bachelor":
                     r = self.generate_random_float_from_0_to_1()
-                    if r >= 0 and r < 0.5: return "no"
-                    if r >= 0.5 and r <= 1: return "yes"
+                    if r >= 0 and r < 0.5:
+                        return "no"
+                    if r >= 0.5 and r <= 1:
+                        return "yes"
                 if age <= 30 and highest_education == "master":
                     r = self.generate_random_float_from_0_to_1()
                     if r >= 0 and r < 0.97:
@@ -553,6 +594,7 @@ class DataGenerator:
 
             def generate_reported_monthly_income():
                 """Generate monthly income report with Gaussian curve."""
+                # pylint: disable=too-many-branches,too-many-return-statements
                 min_salary = int(self.avg_salary / 2)
                 max_salary = self.avg_salary * 10
                 base_salary = self.avg_salary
@@ -625,41 +667,61 @@ class DataGenerator:
             reported_monthly_income = generate_reported_monthly_income()
 
             def generate_housing_status():
+                """Generate housing status based on income and financial situation."""
+                # pylint: disable=too-many-branches,too-many-return-statements,inconsistent-return-statements
 
                 if reported_monthly_income > self.avg_salary * 4:
                     r = self.generate_random_float_from_0_to_1()
-                    if r >= 0 and r < 0.70: return "own"
-                    if r >= 0.7 and r < 0.95: return "mortgage"
-                    if r >= 0.95 and r <= 1.0: return "rent"
+                    if r >= 0 and r < 0.70:
+                        return "own"
+                    if r >= 0.7 and r < 0.95:
+                        return "mortgage"
+                    if r >= 0.95 and r <= 1.0:
+                        return "rent"
 
                 if reported_monthly_income > self.avg_salary * 2:
                     r = self.generate_random_float_from_0_to_1()
-                    if r >= 0 and r < 0.40: return "own"
-                    if r >= 0.4 and r < 0.90: return "mortgage"
-                    if r >= 0.90 and r <= 1.0: return "rent"
+                    if r >= 0 and r < 0.40:
+                        return "own"
+                    if r >= 0.4 and r < 0.90:
+                        return "mortgage"
+                    if r >= 0.90 and r <= 1.0:
+                        return "rent"
 
                 if reported_monthly_income > self.avg_salary * 1.5:
                     r = self.generate_random_float_from_0_to_1()
-                    if r >= 0 and r < 0.10: return "own"
-                    if r >= 0.1 and r < 0.60: return "mortgage"
-                    if r >= 0.60 and r <= 1.0: return "rent"
+                    if r >= 0 and r < 0.10:
+                        return "own"
+                    if r >= 0.1 and r < 0.60:
+                        return "mortgage"
+                    if r >= 0.60 and r <= 1.0:
+                        return "rent"
 
                 if reported_monthly_income < self.avg_salary * 0.25:
                     r = self.generate_random_float_from_0_to_1()
-                    if r >= 0 and r < 0.0001: return "own"
-                    if r >= 0.0001 and r < 0.0005: return "mortgage"
-                    if r >= 0.0005 and r <= 1.0: return "rent"
+                    if r >= 0 and r < 0.0001:
+                        return "own"
+                    if r >= 0.0001 and r < 0.0005:
+                        return "mortgage"
+                    if r >= 0.0005 and r <= 1.0:
+                        return "rent"
 
                 if reported_monthly_income < self.avg_salary * 0.5:
                     r = self.generate_random_float_from_0_to_1()
-                    if r >= 0 and r < 0.01: return "own"
-                    if r >= 0.01 and r < 0.09: return "mortgage"
-                    if r >= 0.09 and r <= 1.0: return "rent"
+                    if r >= 0 and r < 0.01:
+                        return "own"
+                    if r >= 0.01 and r < 0.09:
+                        return "mortgage"
+                    if r >= 0.09 and r <= 1.0:
+                        return "rent"
 
                 r = self.generate_random_float_from_0_to_1()
-                if r >= 0 and r < 0.02: return "own"
-                if r >= 0.02 and r < 0.20: return "mortgage"
-                if r >= 0.20 and r <= 1.0: return "rent"
+                if r >= 0 and r < 0.02:
+                    return "own"
+                if r >= 0.02 and r < 0.20:
+                    return "mortgage"
+                if r >= 0.20 and r <= 1.0:
+                    return "rent"
 
             housing_status = generate_housing_status()
 
@@ -719,9 +781,8 @@ class DataGenerator:
             def generate_total_existing_debt():
                 if housing_status == "mortgage":
                     return property_owned_value * self.generate_random_float_from_0_to_1()
-                else:
-                    if self.generate_random_float_from_0_to_1() > 0.50:
-                        return property_owned_value * 0.8 * self.generate_random_float_from_0_to_1()
+                if self.generate_random_float_from_0_to_1() > 0.50:
+                    return property_owned_value * 0.8 * self.generate_random_float_from_0_to_1()
                 return 0
 
             total_existing_debt = generate_total_existing_debt()
@@ -746,11 +807,11 @@ class DataGenerator:
                 monthly_interest_rate_float = self.interest_rate / 100 / 12
                 num_of_monthly_payments = loan_term * 12
 
-                """Loan with 0% annual interest."""
+                # Loan with 0% annual interest.
                 if monthly_interest_rate_float == 0:
                     return loan_amount / num_of_monthly_payments
 
-                """Calculation of monthly payment with monthly interest rate 'r' as a decimal."""
+                # Calculation of monthly payment with monthly interest rate 'r' as a decimal.
                 return loan_amount * (monthly_interest_rate_float * (
                             1 + monthly_interest_rate_float) ** num_of_monthly_payments) / (
                             (1 + monthly_interest_rate_float) ** num_of_monthly_payments - 1)
@@ -759,6 +820,7 @@ class DataGenerator:
 
             def generate_credit_history():
                 """Generate credit history based on income, education, debt, assets, employment, and age."""
+                # pylint: disable=too-many-branches,too-many-statements
                 score = 50  # Base score
 
                 # Income factor (major impact)
@@ -875,21 +937,31 @@ class DataGenerator:
             credit_history = generate_credit_history()
 
             def generate_stability_income():
+                """Calculate income stability score based on multiple factors."""
+                # pylint: disable=too-many-branches
                 value_stability = 200  # baseline
                 hgh_points_poss = value_stability + 165
 
-                if government_employee == "yes": value_stability += 50
+                if government_employee == "yes":
+                    value_stability += 50
 
                 value_stability += self.generate_stability_len_employment(len_employment)
 
-                if employment_type == "unemployed": value_stability += -50
-                if employment_type == "freelancer": value_stability += -5
-                if employment_type == "permanent":  value_stability += 5
+                if employment_type == "unemployed":
+                    value_stability += -50
+                if employment_type == "freelancer":
+                    value_stability += -5
+                if employment_type == "permanent":
+                    value_stability += 5
 
-                if highest_education == "bachelor": value_stability += 10
-                if highest_education == "master":   value_stability += 20
-                if highest_education == "phd":      value_stability += 30
-                if highest_education == "basic":    value_stability += -50
+                if highest_education == "bachelor":
+                    value_stability += 10
+                if highest_education == "master":
+                    value_stability += 20
+                if highest_education == "phd":
+                    value_stability += 30
+                if highest_education == "basic":
+                    value_stability += -50
 
                 if size_of_company < 10:
                     value_stability -= 25
@@ -904,10 +976,14 @@ class DataGenerator:
                 else:
                     value_stability += 25
 
-                if age_young == 1: value_stability -= 10
-                if age_old == 1:  value_stability -= 25
-                if age_prime == 1: value_stability += 25
-                if age_senior == 1: value_stability += 5
+                if age_young == 1:
+                    value_stability -= 10
+                if age_old == 1:
+                    value_stability -= 25
+                if age_prime == 1:
+                    value_stability += 25
+                if age_senior == 1:
+                    value_stability += 5
 
                 # stability_income will have values between 0 and 1.
                 return round(value_stability / hgh_points_poss, 5)
