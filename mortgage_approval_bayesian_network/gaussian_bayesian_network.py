@@ -27,25 +27,25 @@ loan_approval_model = LinearGaussianBayesianNetwork(
         ("total_stable_income_monthly", "ratio_income_debt"),
         ("total_existing_debt", "ratio_income_debt"),
 
-        ("investments_value", "ratio_debt_net_worth"),
-        ("property_owned_value", "ratio_debt_net_worth"),
+        ("core_net_worth", "ratio_debt_net_worth"),
         ("total_existing_debt", "ratio_debt_net_worth"),
 
         ("investments_value", "core_net_worth"),
         ("property_owned_value", "core_net_worth"),
 
-        ("total_existing_debt", "defaulted"),
-        ("total_stable_income_monthly", "defaulted"),
-        ("core_net_worth", "defaulted"),
+        ("avg_salary", "ratio_income_to_avg_salary"),
+        ("total_stable_income_monthly", "ratio_income_to_avg_salary"),
+
         ("housing_status", "defaulted"),
         ("credit_history", "defaulted"),
         ("ratio_debt_net_worth", "defaulted"),
+        ("ratio_income_debt", "defaulted"),
+        ("ratio_payment_to_income", "defaulted"),
+        ("ratio_income_to_avg_salary", "defaulted"),
 
         ("monthly_payment", "ratio_payment_to_income"),
         ("total_stable_income_monthly", "ratio_payment_to_income"),
-        ("ratio_payment_to_income", "defaulted"),
         ("ratio_payment_to_income", "loan_approved"),
-        ("ratio_income_debt", "loan_approved"),
         ("ratio_debt_net_worth", "loan_approved"),
         ("credit_history", "loan_approved"),
 

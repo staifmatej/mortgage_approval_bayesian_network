@@ -46,6 +46,12 @@ def collect_user_info():
 
     # TODO: vygenerovat synteticka data na zaklade avg_salary a spocitat hypoteku pomoci interest_rate.
 
+    # TODO: kdyz je mesicni splatka vyssi jak plat tak nastavit 0 procent jako probability.
+
+    # TODO: nepujcovat lidem vice nezli 500 nasobek jejich prijmu
+
+    # TODO: avg. salary nikdy nemuze byt 0
+
     print(f"\nPlease enter mortgage applicant information:\n")
     
     # Personal info
@@ -457,10 +463,15 @@ def main():
     # Get loan scenarios
     print(f"\n{S_YELLOW}=== Loan Scenarios ==={E_YELLOW}")
     min_amount = float(input("Minimum loan amount (CZK): "))
+
+    # TODO: minimum loan amount is 10'000 CZK.
+    # TODO: maximum loan amount is 1000 * avg_salary.
     max_amount = float(input("Maximum loan amount (CZK): "))
     step_amount = float(input("Step size for amount (CZK): "))
     
     loan_terms = input("Loan terms to test (comma-separated years, e.g. 10,15,20,30): ").strip()
+
+    # TODO: spltky jdou vzit od 1 roku po dobu 35 let splaceni.
     loan_terms = [int(term.strip()) for term in loan_terms.split(',')]
     
     # Test different loan scenarios
