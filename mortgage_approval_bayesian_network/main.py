@@ -1,617 +1,455 @@
 import numpy as np
 import pandas as pd
+import os
+import warnings
+import tabulate
 
 from data_generation_realistic import encode_age_group
 from gaussian_bayesian_network import GaussianBayesianNetwork
+from data_generation_realistic import DataGenerator
 from utils.error_print import *
 from utils.constants import *
+from utils.print_press_enter_to_continue import *
 
-def calculate_monthly_payment(loan_amount, loan_term_years, annual_rate=0.05):
-    """Calculate monthly payment using standard amortization formula"""
-    if loan_amount <= 0 or loan_term_years <= 0:
-        return 0
+warnings.filterwarnings('ignore', category=RuntimeWarning)
 
-    monthly_rate = annual_rate / 12
-    n_payments = loan_term_years * 12
+TRILLION = int(1e12)
+BILLION = int(1e9)
+MILLION = int(1e6)
 
-    monthly_payment = loan_amount * (monthly_rate * (1 + monthly_rate)**n_payments) / ((1 + monthly_rate)**n_payments - 1)
+class InputHandler():
 
-    return monthly_payment
+    def __init__(self):
+        self.csv_path = "datasets/mortgage_applications.csv"
+        self.avg_salary = 35000     # Average salary in Czechia in 2025.
+        self.interest_rate = 0.045  # 4.5% p.a.
+        self.data_num_records = 1e4 # Perfect balance between speed and data amount.
 
-def collect_user_info():
-    """Collect applicant information from banker"""
-    print(f"\n{S_CYAN}=== BayesianHill Bank - Mortgage Approval System ==={E_CYAN}")
+    def validate_input_alpha(self, prompt, valid_options, max_attempts=3, error_msg=None):
+        """Validates user input with retry mechanism"""
 
-    interest_rate_str = input(f"\nEnter the interest rate at which we will lend the mortgage: (from 0 to 0.27; default 0.05) ")
-    print(f"{S_CYAN}Note{E_CYAN}: At Bayesianhill Bank, we always provide a fixed interest rate for the entire duration of mortgage.")
+        for i in range(max_attempts + 1):
+            if i >= max_attempts:
+                print_error_handling("Error loading input")
+            try:
+                user_input = input(prompt).strip().lower()
+            except Exception as e:
+                print_invalid_input(f"{e}. [{i+1}/{max_attempts}]")
+                continue
+                
+            if user_input in valid_options:
+                return user_input
+                
+            if error_msg is None:
+                options_str = '", "'.join(valid_options)
+                error_msg = f'Please enter "{options_str}"'
+                
+            print_invalid_input(f"{error_msg}. [{i+1}/{max_attempts}]")
 
-    if interest_rate_str == "":
-        interest_rate = 0.05
-    else:
-        interest_rate = float(interest_rate_str)
+    def validate_input_numerical(self, prompt, min_val=None, max_val=None, default_val=None, max_attempts=3, data_type=float):
+        """
+        Validates numerical input with range validation
+        """
+        if data_type != float and data_type != int:
+            print_error_handling("Function 'validate_input_numerical' except only data_type as float or int.")
 
-    avg_salary_str = input(f"Enter the average net salary in the Czechia: (default 50000 CZK) ")
-    if avg_salary_str == "":
-        avg_salary = 50000
-    else:
-        avg_salary = float(avg_salary_str)
-
-    # TODO: vygenerovat synteticka data na zaklade avg_salary a spocitat hypoteku pomoci interest_rate.
-
-    # TODO: kdyz je mesicni splatka vyssi jak plat tak nastavit 0 procent jako probability.
-
-    # TODO: nepujcovat lidem vice nezli 500 nasobek jejich prijmu
-
-    # TODO: avg. salary nikdy nemuze byt 0
-
-    print(f"\nPlease enter mortgage applicant information:\n")
-    
-    # Personal info
-    try:
-        # age
-        for i in range(4):
-            if i > 2:
-                print_error_handling("in main.py")
-            else:
-                try:
-                    age = int(input("Age: ").strip())
-                except Exception as e:
-                    print_wrong_handling(f"{e}. [{i+1}/3]")
+        for i in range(max_attempts + 1):
+            if i >= max_attempts:
+                print_error_handling("Error loading numerical input")
+                return None
+                
+            try:
+                user_input = input(prompt).strip()
+                
+                if user_input == "" and default_val is not None:
+                    return default_val
+                    
+                value = data_type(user_input)
+                if data_type == float:
+                    value = np.round(value, 0)
+                
+                if min_val is not None and value < min_val:
+                    print_invalid_input(f"Value must be at least {min_val}. [{i+1}/{max_attempts}]")
                     continue
-                if age < 18:
-                    print_wrong_handling(f"Age must be at least 18. [{i + 1}/3]")
+                    
+                if max_val is not None and value > max_val:
+                    print_invalid_input(f"Value must be at most {max_val}. [{i+1}/{max_attempts}]")
                     continue
-                if age > 65:
-                    print_wrong_handling(f"Sorry, we don't provide new mortgages to people over 65. [{i+1}/3]")
-                    continue
-                if age >= 18 and age <= 65:
-                    break
+                    
+                return value
+                
+            except ValueError:
+                print_invalid_input(f"Please enter a valid number. [{i+1}/{max_attempts}]")
+                continue
+            except Exception as e:
+                print_invalid_input(f"{e}. [{i+1}/{max_attempts}]")
+                continue
+        
+        return None
 
-        # government_employee
-        for i in range(4):
-            if i > 2:
-                print_error_handling("in main.py")
-            else:
-                try:
-                    government_employee = input("Government employee? (yes/no): ").strip().lower()
-                except Exception as e:
-                    print_wrong_handling(f"{e}. [{i+1}/3]")
-                    continue
-                if government_employee != "yes" and government_employee != "no":
-                    print_wrong_handling(f"Please enter \"yes\" or \"no\". [{i+1}/3]")
-                    continue
-                if government_employee == "yes" or government_employee == "no":
-                    break
+    def generate_csv_dataset(self):
+        dataCreate = DataGenerator(self.avg_salary, self.interest_rate, int(self.data_num_records))
+        print(f"\n{S_CYAN}Generating realistic synthetic dataset with {int(self.data_num_records):,} records...{E_CYAN}")
+        dataCreate.generate_realistic_data(True)
+        dataCreate.remove_wrong_rows(False, None)
 
-        # highest_education
-        for i in range(4):
-            if i > 2:
-                print_error_handling("in main.py")
-            else:
-                try:
-                    highest_education = input("Highest education (basic / high_school / bachelor / master / phd): ").lower().strip()
-                except Exception as e:
-                    print_wrong_handling(f"{e}. [{i + 1}/3]")
-                    continue
-                valid_options = ["basic", "high_school", "bachelor", "master", "phd"]
-                if highest_education not in valid_options:
-                    print_wrong_handling(f"Please enter \"basic\", \"high_school\", \"bachelor\", \"master\" or \"phd\". [{i+1}/3]")
-                    continue
-                break
+    def train_and_validate_gbn(self):
+        print(f"{S_CYAN}Training & Validate Gaussain Bayesain Network...{E_CYAN}")
+        model_gbn = GaussianBayesianNetwork(True, self.csv_path, self.avg_salary)
+        model_gbn.check_model_gbn()
+        return model_gbn
 
-        # study_status
-        for i in range(4):
-            if i > 2:
-                print_error_handling("in main.py")
-            else:
-                try:
-                    study_status = input("Is mortgage applicant student? (yes / no): ").strip().lower()
-                except Exception as e:
-                    print_wrong_handling(f"{e}. [{i + 1}/3]")
-                    continue
-                if study_status not in ["yes", "no"]:
-                    print_wrong_handling(f"Please enter \"yes\" or \"no\". [{i+1}/3]")
-                    continue
-                break
+    def collect_datasets_user_info(self):
+        dataset_choice = self.validate_input_alpha(
+            "\nWould you like to use your own dataset or generate a new one? (own/generate): ",
+            ["own", "generate", "g", "o", "ow", "ge", "gen", "gene", "gener", "genera", "generat"],
+            error_msg="Please enter 'own' to use existing dataset or 'generate' to autogenerate new realistic data")
 
-        # Person is in school or university.
+        if "g" in dataset_choice:
+            self.data_num_records = self.validate_input_numerical(
+                "\nHow many records should we generate? (default 100000): ",
+                min_val=100,
+                max_val=TRILLION,
+                default_val=100000,
+                data_type=float
+            )
+        elif "o" in dataset_choice:
+            custom_path = input(f"\nEnter path to your CSV file (default: {self.csv_path}): ").strip()
+            if custom_path == "":
+                custom_path = self.csv_path
+            if os.path.exists(custom_path) == False:
+                print_invalid_input(f"File does not exist. [1/2]")
+                custom_path = input(f"\nEnter path to your CSV file (default: {self.csv_path}): ").strip()
+                if custom_path == "":
+                    custom_path = self.csv_path
+                if os.path.exists(custom_path) == False:
+                    print_error_handling("File does not exist. [2/2]")
+            if custom_path:
+                self.csv_path = custom_path
+
+    def collect_main_user_info(self):
+        print(f"\n{S_CYAN} ══════ Welcome to the BayesianHill Bank & Co. - Mortgage Approval System ══════ {E_CYAN}")
+
+        self.interest_rate = self.validate_input_numerical("\nEnter the interest rate at which we will lend the mortgage (from 0 to 0.27; default 0.05): ", min_val=0, max_val=0.27, default_val=0.05, max_attempts=3, data_type=float)
+        print(f"{S_CYAN}Note{E_CYAN}: At Bayesianhill Bank, we always provide a fixed interest rate for the entire duration of mortgage.")
+
+        self.avg_salary = self.validate_input_numerical("\nEnter the average net salary in the Czechia (default 40000 CZK): ", min_val=1, max_val=TRILLION, default_val=40000, max_attempts=3, data_type=float)
+        print(f"{S_CYAN}Note{E_CYAN}: Unless stated otherwise, the salary is assumed to be in Czech crowns.")
+
+
+    def collect_other_user_info(self):
+        print(f"\nPlease enter mortgage applicant information:\n")
+        
+        age = self.validate_input_numerical(
+            "Age: ",
+            min_val=18,
+            max_val=65,
+            data_type=int
+        )
+        
+        government_employee = self.validate_input_alpha(
+            "Government employee? (yes/no): ",
+            ["yes", "no"]
+        )
+        
+        highest_education = self.validate_input_alpha(
+            "Highest education (basic/high_school/bachelor/master/phd): ",
+            ["basic", "high_school", "bachelor", "master", "phd"]
+        )
+        
+        study_status = self.validate_input_alpha(
+            "Is mortgage applicant student? (yes/no): ",
+            ["yes", "no"]
+        )
+        
         if study_status == "yes":
             employment_type = "unemployed"
             len_employment = 0
             size_of_company = 0
+        else:
+            employment_type = self.validate_input_alpha(
+                "Employment type (unemployed/temporary/freelancer/permanent): ",
+                ["unemployed", "temporary", "freelancer", "permanent"]
+            )
 
-        # Person is not anymore in school or university.
-        if study_status == "no":
+            min_basic_len = 14
+            min_high_school_len = min_basic_len + 4
+            min_bachelor_len = min_high_school_len + 1
+            min_master_len = min_bachelor_len + 1
+            min_phd_len = min_master_len + 2
 
-            # employment_type
-            for i in range(4):
-                if i > 2:
-                    print_error_handling("in main.py")
-                else:
-                    try:
-                        employment_type = input("Employment type (unemployed/temporary/freelancer/permanent): ").strip().lower()
-                    except Exception as e:
-                        print_wrong_handling(f"{e}. [{i+1}/3]")
-                        continue
-                    valid_employment_types = ["unemployed", "temporary", "freelancer", "permanent"]
-                    if employment_type not in valid_employment_types:
-                        print_wrong_handling(f"Please enter \"unemployed\", \"temporary\", \"freelancer\" or \"permanent\". [{i+1}/3]")
-                        continue
-                    break
+            max_study_time = 0
+            if highest_education == "basic":
+                max_study_time = min_basic_len
+            elif highest_education == "high_school":
+                max_study_time = min_high_school_len
+            elif highest_education == "bachelor":
+                max_study_time = min_bachelor_len
+            elif highest_education == "master":
+                max_study_time = min_master_len
+            elif highest_education == "phd":
+                max_study_time = min_phd_len
 
-            # Person is not unemployed.
             if employment_type != "unemployed":
-
-                # len_employment
-                for i in range(4):
-                    if i > 2:
-                        print_error_handling("in main.py")
-                    else:
-                        try:
-                            len_employment = int(input("How many years is applicant in same company employee? ").strip())
-                        except Exception as e:
-                            print_wrong_handling(f"{e}. [{i+1}/3]")
-                            continue
-                        if len_employment < 0 or len_employment > 189:
-                            print_wrong_handling(f"Please enter number between 0 and 189. [{i+1}/3]")
-                            continue
-                        break
-
-                # size_of_company
-                for i in range(4):
-                    if i > 2:
-                        print_error_handling("in main.py")
-                    else:
-                        try:
-                            size_of_company = int(input("Number of company employees, where applicant works: ").strip())
-                        except Exception as e:
-                            print_wrong_handling(f"{e}. [{i+1}/3]")
-                            continue
-                        if size_of_company < 0 or size_of_company > 1e30:
-                            print_wrong_handling(f"Please enter number between 0 and 1e30. [{i+1}/3]")
-                            continue
-                        break
-
-            # Person is  unemployed.
-            if employment_type == "unemployed":
+                len_employment = self.validate_input_numerical(
+                    "How many years is applicant in same company employee? ",
+                    min_val=0,
+                    max_val=age-max_study_time,
+                    data_type=int
+                )
+                
+                size_of_company = self.validate_input_numerical(
+                    "Number of company employees, where applicant works: ",
+                    min_val=0,
+                    max_val=MILLION,
+                    data_type=int
+                )
+            else:
                 len_employment = 0
                 size_of_company = 0
-
-
-        # reported_monthly_income
-        for i in range(4):
-            if i > 2:
-                print_error_handling("in main.py")
-            else:
-                try:
-                    reported_monthly_income = float(input("Monthly income (in Czech Crowns): ").strip())
-                except Exception as e:
-                    print_wrong_handling(f"{e}. [{i+1}/3]")
-                    continue
-                if reported_monthly_income < 0 or reported_monthly_income > 1e30:
-                    print_wrong_handling(f"Please enter number between 0 and 1e30. [{i+1}/3]")
-                    continue
-                break
-
-        # total_existing_debt
-        for i in range(4):
-            if i > 2:
-                print_error_handling("in main.py")
-            else:
-                try:
-                    total_existing_debt = float(input("Total existing debt (in Czech Crowns): ").strip())
-                except Exception as e:
-                    print_wrong_handling(f"{e}. [{i+1}/3]")
-                    continue
-                if total_existing_debt < 0 or total_existing_debt > 1e30:
-                    print_wrong_handling(f"Please enter positive number between 0 and 1e30. [{i+1}/3]")
-                    continue
-                break
-
-        # extra_net_worth
-        for i in range(4):
-            if i > 2:
-                print_error_handling("in main.py")
-            else:
-                try:
-                    extra_net_worth = input("Do you have investments or do you owned property? (yes/no): ").lower().strip()
-                except Exception as e:
-                    print_wrong_handling(f"{e}. [{i+1}/3]")
-                    continue
-                if extra_net_worth not in ["yes", "no"]:
-                    print_wrong_handling(f"Please enter \"yes\" or \"no\". [{i+1}/3]")
-                    continue
-                break
-
+        
+        reported_monthly_income = self.validate_input_numerical(
+            "Monthly income (in Czech Crowns): ",
+            min_val=0,
+            max_val=TRILLION,
+            data_type=float
+        )
+        
+        total_existing_debt = self.validate_input_numerical(
+            "Total existing debt (in Czech Crowns): ",
+            min_val=0,
+            max_val=TRILLION,
+            data_type=float
+        )
+        
+        extra_net_worth = self.validate_input_alpha(
+            "Do you have investments or do you owned property? (yes/no): ",
+            ["yes", "no"]
+        )
+        
         if extra_net_worth == "yes":
-            # investments_value
-            for i in range(4):
-                if i > 2:
-                    print_error_handling("in main.py")
-                else:
-                    try:
-                        investments_value = float(input("Investments value (in Czech Crowns): ").strip())
-                    except Exception as e:
-                        print_wrong_handling(f"{e}. [{i+1}/3]")
-                        continue
-                    if investments_value < 0 or investments_value > 1e100:
-                        print_wrong_handling(f"Please enter number between 0 and 1e100. [{i+1}/3]")
-                        continue
-                    break
-
-            # property_owned_value
-            for i in range(4):
-                if i > 2:
-                    print_error_handling("in main.py")
-                else:
-                    try:
-                        property_owned_value = float(input("Property owned value (in Czech Crowns): ").strip())
-                    except Exception as e:
-                        print_wrong_handling(f"{e}. [{i+1}/3]")
-                        continue
-                    if property_owned_value < 0 or property_owned_value > 1e100:
-                        print_wrong_handling(f"Please enter number between 0 and 1e100. [{i+1}/3]")
-                        continue
-                    break
+            investments_value = self.validate_input_numerical(
+                "Investments value (in Czech Crowns): ",
+                min_val=0,
+                max_val=TRILLION,
+                data_type=float
+            )
+            
+            property_owned_value = self.validate_input_numerical(
+                "Property owned value (in Czech Crowns): ",
+                min_val=0,
+                max_val=TRILLION,
+                data_type=float
+            )
         else:
             investments_value = 0
             property_owned_value = 0
+        
+        housing_status = self.validate_input_alpha(
+            "Housing status (rent/mortgage/own/homeless): ",
+            ["rent", "mortgage", "own", "homeless"]
+        )
 
+        if housing_status != "homeless":
+            credit_history = self.validate_input_alpha(
+                "Mortgage applicant credit score (bad/fair/good/excellent): ",
+                ["bad", "fair", "good", "excellent"]
+            )
 
-        # housing_status
-        for i in range(4):
-            if i > 2:
-                print_error_handling("in main.py")
-            else:
-                try:
-                    housing_status = input("Housing status (rent/mortgage/own): ").lower().strip()
-                except Exception as e:
-                    print_wrong_handling(f"{e}. [{i+1}/3]")
-                    continue
-                if housing_status not in ["rent", "mortgage", "own"]:
-                    print_wrong_handling(f"Please enter \"rent\", \"mortgage\" or \"own\". [{i+1}/3]")
-                    continue
-                break
+        if housing_status == "homeless":
+            credit_history = "bad"
 
-        # credit_history
-        for i in range(4):
-            if i > 2:
-                print_error_handling("in main.py")
-            else:
-                try:
-                    credit_history = input("Mortgage applicant credit score (bad/fair/good/excellent): ").lower().strip()
-                except Exception as e:
-                    print_wrong_handling(f"{e}. [{i+1}/3]")
-                    continue
-                if credit_history not in ["bad", "fair", "good", "excellent"]:
-                    print_wrong_handling(f"Please enter \"bad\", \"fair\", \"good\" or \"excellent\". [{i+1}/3]")
-                    continue
-                break
+        return {
+            'age': age,
+            'government_employee': government_employee,
+            'highest_education': highest_education,
+            'study_status': study_status,
+            'employment_type': employment_type,
+            'len_employment': len_employment,
+            'size_of_company': size_of_company,
+            'reported_monthly_income': reported_monthly_income,
+            'total_existing_debt': total_existing_debt,
+            'investments_value': investments_value,
+            'property_owned_value': property_owned_value,
+            'housing_status': housing_status,
+            'credit_history': credit_history
+        }
 
-    except Exception as e:
-        print_wrong_handling(str(e))
+    def calculate_monthly_payment(self, loan_amount, loan_term):
+        """Calculate monthly payment based on interest rate, loan amount and term."""
+        la = loan_amount
+        annual_rate = self.interest_rate
+        years = loan_term
 
-    return {
-        'age': age,
-        'government_employee': government_employee,
-        'highest_education': highest_education,
-        'employment_type': employment_type,
-        'len_employment': len_employment,
-        'size_of_company': size_of_company,
-        'reported_monthly_income': reported_monthly_income,
-        'total_existing_debt': total_existing_debt,
-        'investments_value': investments_value,
-        'property_owned_value': property_owned_value,
-        'housing_status': housing_status,
-        'credit_history': credit_history
-    }
+        r = annual_rate / 12             # monthly interest rate (already decimal)
+        loan_term_months = years * 12    # number of payments
 
-def prepare_evidence(user_info, loan_amount, loan_term):
-    """Prepare evidence for inference"""
-    # Calculate monthly payment
-    monthly_payment = calculate_monthly_payment(loan_amount, loan_term)
-    
-    # Get age groups
-    age_young, age_prime, age_senior, age_old = encode_age_group(user_info['age'])
-    
-    # Convert text to numeric values
-    gov_emp = 1 if user_info['government_employee'] == 'yes' else 0
+        if la <= 0 or loan_term <= 0:
+            print_error_handling("Invalid arguments in 'calculate_monthly_payment'.")
 
-    housing_map = {'rent': 0, 'mortgage': 1, 'own': 2}
-    credit_map = {'bad': 0, 'fair': 1, 'good': 2, 'excellent': 3}
-    education_map = {'basic': 0, 'high_school': 1, 'bachelor': 2, 'master': 3, 'phd': 4}
-    employment_map = {'unemployed': 0, 'temporary': 1, 'freelancer': 1, 'permanent': 2}
-    
-    return {
-        'government_employee': gov_emp,
-        'age_young': age_young,
-        'age_prime': age_prime,
-        'age_senior': age_senior,
-        'age_old': age_old,
-        'highest_education': education_map.get(user_info['highest_education'], 0),
-        'employment_type': employment_map.get(user_info['employment_type'], 0),
-        'len_employment': user_info['len_employment'],
-        'size_of_company': user_info['size_of_company'],
-        'reported_monthly_income': user_info['reported_monthly_income'],
-        'total_existing_debt': user_info['total_existing_debt'],
-        'investments_value': user_info['investments_value'],
-        'property_owned_value': user_info['property_owned_value'],
-        'housing_status': housing_map.get(user_info['housing_status'], 0),
-        'credit_history': credit_map.get(user_info['credit_history'], 0),
-        'loan_amount': loan_amount,
-        'loan_term': loan_term,
-        'monthly_payment': monthly_payment
-    }
+        if r == 0:  # Handle zero interest rate
+            return la / loan_term_months
+        
+        return la * r / (1 - (1 + r) ** (-loan_term_months))
 
-def calculate_approval_manually(evidence):
-    """Calculate approval probability manually using learned CPD parameters"""
-    try:
-        # Get the CPD for loan_approved
-        cpd_loan_approved = loan_approval_model.get_cpds('loan_approved')
+    def predict_loan_approval(self, model_gbn, mortgage_applicant_data, loan_amount, loan_term):
+        """Predict loan approval probability using trained GBN model"""
         
-        # Get beta coefficients
-        beta = cpd_loan_approved.beta
-        evidence_vars = cpd_loan_approved.evidence
+        age_young, age_prime, age_senior, age_old = encode_age_group(mortgage_applicant_data['age'])
         
-        # DEBUG: Print CPD parameters
-        print(f"\n{S_CYAN}=== DEBUG: loan_approved CPD Parameters ==={E_CYAN}")
-        print(f"Evidence variables: {evidence_vars}")
-        print(f"Beta coefficients shape: {beta.shape}")
-        print(f"Beta coefficients: {beta}")
-        print(f"Beta intercept (beta[0]): {beta[0]}")
-        # LinearGaussianCPD doesn't have variance attribute
-        # print(f"Variance: {cpd_loan_approved.variance}")
+        housing_map = {'rent': 0, 'mortgage': 1, 'own': 2}
+        credit_map = {'bad': 0, 'fair': 1, 'good': 2, 'excellent': 3}
+        education_map = {'basic': 0, 'high_school': 1, 'bachelor': 2, 'master': 3, 'phd': 4}
+        employment_map = {'unemployed': 0, 'temporary': 1, 'freelancer': 1, 'permanent': 2}
         
-        # Print beta coefficients with variable names
-        print(f"\n{S_YELLOW}Beta coefficients breakdown:{E_YELLOW}")
-        print(f"  Intercept: {beta[0]:.6f}")
-        for i, var in enumerate(evidence_vars):
-            print(f"  {var}: {beta[i+1]:.6f}")
+        monthly_payment = self.calculate_monthly_payment(loan_amount, loan_term)
         
-        # Build evidence vector
-        evidence_vector = [1]  # intercept
-        for var in evidence_vars:
-            evidence_vector.append(evidence.get(var, 0))
-        
-        # Calculate linear combination
-        score = np.dot(beta, evidence_vector)
-        
-        # DEBUG: Print the raw score before sigmoid
-        print(f"\n{S_GREEN}Raw score (linear combination):{E_GREEN} {score:.6f}")
-        print(f"This raw score IS the predicted loan_approved value from the Linear Gaussian model")
-        
-        # The model was trained with loan_approved values between 0 and 1
-        # So the raw score should be used directly, not transformed!
-        print(f"\n{S_RED}IMPORTANT FINDING:{E_RED}")
-        print(f"The training data has loan_approved values between 0 and 1 (probabilities)")
-        print(f"LinearGaussianBayesianNetwork predicts these values directly")
-        print(f"NO sigmoid transformation is needed!")
-        
-        # Clip the score to [0, 1] range since it's a probability
-        prob_direct = np.clip(score, 0, 1)
-        
-        # Show both interpretations
-        prob_sigmoid = 1 / (1 + np.exp(-score))
-        print(f"\n{S_YELLOW}Comparison:{E_YELLOW}")
-        print(f"  Direct interpretation (correct): {prob_direct:.6f}")
-        print(f"  With sigmoid (incorrect): {prob_sigmoid:.6f}")
-        print("-" * 70)
-        
-        # Return the direct interpretation
-        return prob_direct
-    except Exception as e:
-        print(f"Error in manual calculation: {e}")
-        return 0.5
+        evidence = {
+            'government_employee': 1 if mortgage_applicant_data['government_employee'] == 'yes' else 0,
+            'age_young': age_young,
+            'age_prime': age_prime, 
+            'age_senior': age_senior,
+            'age_old': age_old,
+            'highest_education': education_map.get(mortgage_applicant_data['highest_education'], 0),
+            'employment_type': employment_map.get(mortgage_applicant_data['employment_type'], 0),
+            'len_employment': mortgage_applicant_data['len_employment'],
+            'size_of_company': mortgage_applicant_data['size_of_company'],
+            'reported_monthly_income': mortgage_applicant_data['reported_monthly_income'],
+            'total_existing_debt': mortgage_applicant_data['total_existing_debt'],
+            'investments_value': mortgage_applicant_data['investments_value'],
+            'property_owned_value': mortgage_applicant_data['property_owned_value'],
+            'housing_status': housing_map.get(mortgage_applicant_data['housing_status'], 0),
+            'credit_history': credit_map.get(mortgage_applicant_data['credit_history'], 0),
+            'loan_amount': loan_amount,
+            'loan_term': loan_term,
+            'monthly_payment': monthly_payment
+        }
 
-def analyze_loan_approved_values():
-    """Analyze the values of loan_approved in the training data"""
-    try:
-        from data_loader import LoanDataLoader
-        loader = LoanDataLoader()
-        data = loader.load_data("datasets/mortgage_applications.csv")
-        all_data = loader.get_all_data_numeric()
-        
-        if 'loan_approved' in all_data.columns:
-            loan_values = all_data['loan_approved']
-            print(f"\n{S_CYAN}=== Training Data Analysis for loan_approved ==={E_CYAN}")
-            print(f"Unique values: {loan_values.unique()}")
-            print(f"Min value: {loan_values.min()}")
-            print(f"Max value: {loan_values.max()}")
-            print(f"Mean value: {loan_values.mean():.4f}")
-            print(f"Std deviation: {loan_values.std():.4f}")
-            print(f"Value counts:\n{loan_values.value_counts()}")
-            print("-" * 70)
-    except Exception as e:
-        print(f"Error analyzing training data: {e}")
-
-def test_inference_methods(evidence):
-    """Test different inference methods to understand the model"""
-    try:
-        print(f"\n{S_CYAN}=== Model Structure ==={E_CYAN}")
-        
-        # For LinearGaussianBayesianNetwork, show CPD structure
-        print(f"Model type: LinearGaussianBayesianNetwork")
-        print(f"Number of nodes: {len(loan_approval_model.nodes())}")
-        print(f"Number of edges: {len(loan_approval_model.edges())}")
-        
-        # Show CPDs instead of factors
-        cpds = loan_approval_model.get_cpds()
-        print(f"Number of CPDs: {len(cpds)}")
-        
-        # Note: LinearGaussianBayesianNetwork doesn't support standard inference engines
-        print(f"\n{S_YELLOW}Note:{E_YELLOW} LinearGaussianBayesianNetwork requires manual computation")
-        print("Standard inference engines (VariableElimination) are not supported.")
-        
-    except Exception as e:
-        print(f"Error in model testing: {e}")
-
-def main():
-    # Analyze the training data first
-    # analyze_loan_approved_values()
-
-    # Collect user information
-    user_info = collect_user_info()
-    
-    # Get loan scenarios
-    print(f"\n{S_YELLOW}=== Loan Scenarios ==={E_YELLOW}")
-    min_amount = float(input("Minimum loan amount (CZK): "))
-
-    # TODO: minimum loan amount is 10'000 CZK.
-    # TODO: maximum loan amount is 1000 * avg_salary.
-    max_amount = float(input("Maximum loan amount (CZK): "))
-    step_amount = float(input("Step size for amount (CZK): "))
-    
-    loan_terms = input("Loan terms to test (comma-separated years, e.g. 10,15,20,30): ").strip()
-
-    # TODO: spltky jdou vzit od 1 roku po dobu 35 let splaceni.
-    loan_terms = [int(term.strip()) for term in loan_terms.split(',')]
-    
-    # Test different loan scenarios
-    print(f"\n{S_GREEN}=== Loan Approval Predictions ==={E_GREEN}\n")
-    print(f"{'Loan Amount':>15} {'Term':>6} {'Monthly Payment':>15} {'Approval Probability':>20}")
-    print("-" * 70)
-    
-    results = []
-    first_run = True
-    
-    for loan_term in loan_terms:
-        loan_amount = min_amount
-        while loan_amount <= max_amount:
-            # Prepare evidence
-            evidence = prepare_evidence(user_info, loan_amount, loan_term)
+        try:
+            evidence_df = pd.DataFrame([evidence])  # Convert dict to DataFrame
+            result = model_gbn.loan_approval_model.predict(evidence_df)
             
-            # For the first scenario, test inference methods
-            if first_run:
-                test_inference_methods(evidence)
-                first_run = False
+            if isinstance(result, tuple) and len(result) >= 2:
+                variables_list = result[0]
+                mean_values = result[1]
+                
+                if 'loan_approved' in variables_list:
+                    idx = variables_list.index('loan_approved')
+                    approval_prob = mean_values[0][idx]  # First row, idx column
+                else:
+                    print_error_handling("loan_approved not found in predictions.")
+            else:
+                print_error_handling("Unexpected result format from predict().")
+
+            approval_prob = float(approval_prob)
+            approval_prob = max(0, min(1, approval_prob))
+
+            return approval_prob
             
-            # Calculate approval probability manually
+        except Exception as e:
+            print_error_handling(f"Prediction failed: {e}")
+            import traceback
+            traceback.print_exc()
+            return 0.0
+
+    def print_mortgage_applicant_info(self, mortgage_applicant_data, loan_amount, loan_term):
+        applicant_info = [
+            ["Age", f"{mortgage_applicant_data['age']} years"],
+            ["Government Employee", mortgage_applicant_data['government_employee'].capitalize()],
+            ["Education", mortgage_applicant_data['highest_education'].replace('_', ' ').title()],
+            ["Student Status", mortgage_applicant_data['study_status'].capitalize()],
+            ["Employment Type", mortgage_applicant_data['employment_type'].capitalize()],
+            ["Years in Company", f"{mortgage_applicant_data['len_employment']} years"],
+            ["Company Size", f"{mortgage_applicant_data['size_of_company']:,} employees"],
+            ["Monthly Income", f"{mortgage_applicant_data['reported_monthly_income']:,.0f} CZK"],
+            ["Existing Debt", f"{mortgage_applicant_data['total_existing_debt']:,.0f} CZK"],
+            ["Investments", f"{mortgage_applicant_data['investments_value']:,.0f} CZK"],
+            ["Property Value", f"{mortgage_applicant_data['property_owned_value']:,.0f} CZK"],
+            ["Housing Status", mortgage_applicant_data['housing_status'].capitalize()],
+            ["Credit Score", mortgage_applicant_data['credit_history'].capitalize()],
+            ["Loan Amount", f"{loan_amount:,.0f} CZK"],
+            ["Loan Term", f"{loan_term} years"],
+            ["Interest Rate", f"{self.interest_rate * 100:.1f}% p.a."],
+            ["Monthly Payment", f"{self.calculate_monthly_payment(loan_amount, loan_term):,.0f} CZK"]
+        ]
+
+        print(f"\n{S_CYAN}══════ Mortgage Applicant Summary ══════{E_CYAN}")
+        print(tabulate.tabulate(applicant_info, tablefmt="rounded_grid", stralign="left"))
+
+    def options(self):
+        print("\n══════ Options ══════")
+        print("1. Generate new dataset")
+        print("2. Process new mortgage applicant")
+        print("3. Change interest rate and average salary")
+        print("4. Full reset (new salary, rate & dataset)")
+        print("5. Restart entire program")
+        print("6. Exit program")
+        print("═════════════════════")
+
+        for i in range(4):
+            if i == 4:
+                print_error_handling("Too many invalid choices.")
             try:
-                # For LinearGaussianBayesianNetwork, we need to compute intermediate values
-                # First, calculate all intermediate nodes
-                
-                # Calculate stability_income
-                stability_cpd = loan_approval_model.get_cpds('stability_income')
-                stability_vars = ['government_employee', 'age_young', 'age_prime', 'age_senior', 
-                                'age_old', 'len_employment', 'size_of_company', 'highest_education', 
-                                'employment_type']
-                stability_evidence = [1] + [evidence.get(var, 0) for var in stability_vars]
-                stability_income = np.dot(stability_cpd.beta, stability_evidence)
-                
-                # Calculate total_stable_income_monthly
-                income_cpd = loan_approval_model.get_cpds('total_stable_income_monthly')
-                income_evidence = [1, evidence['reported_monthly_income'], stability_income]
-                total_stable_income = np.dot(income_cpd.beta, income_evidence)
-                
-                # Calculate ratios
-                total_debt = evidence.get('total_existing_debt', 0)
-                investments = evidence.get('investments_value', 0)
-                property_value = evidence.get('property_owned_value', 0)
-                
-                # Avoid division by zero
-                if total_stable_income > 0:
-                    ratio_income_debt = total_debt / total_stable_income
-                    ratio_payment_to_income = monthly_payment / total_stable_income
-                else:
-                    ratio_income_debt = 0
-                    ratio_payment_to_income = 0
-                
-                net_worth = investments + property_value
-                if net_worth > 0:
-                    ratio_debt_net_worth = total_debt / net_worth
-                else:
-                    ratio_debt_net_worth = 0
-                
-                # Calculate defaulted score
-                defaulted_cpd = loan_approval_model.get_cpds('defaulted')
-                defaulted_vars = defaulted_cpd.evidence
-                defaulted_evidence = [1]  # intercept
-                for var in defaulted_vars:
-                    if var == 'total_existing_debt':
-                        defaulted_evidence.append(total_debt)
-                    elif var == 'total_stable_income_monthly':
-                        defaulted_evidence.append(total_stable_income)
-                    elif var == 'core_net_worth':
-                        defaulted_evidence.append(net_worth)
-                    elif var == 'housing_status':
-                        defaulted_evidence.append(evidence.get('housing_status', 0))
-                    elif var == 'credit_history':
-                        defaulted_evidence.append(evidence.get('credit_history', 0))
-                    elif var == 'ratio_debt_net_worth':
-                        defaulted_evidence.append(ratio_debt_net_worth)
-                    elif var == 'ratio_payment_to_income':
-                        defaulted_evidence.append(ratio_payment_to_income)
-                    else:
-                        defaulted_evidence.append(0)
-                
-                defaulted_score = np.dot(defaulted_cpd.beta, defaulted_evidence)
-                
-                # Finally, calculate loan approval
-                approval_cpd = loan_approval_model.get_cpds('loan_approved')
-                approval_evidence = [1]  # intercept
-                for var in approval_cpd.evidence:
-                    if var == 'ratio_payment_to_income':
-                        approval_evidence.append(ratio_payment_to_income)
-                    elif var == 'ratio_income_debt':
-                        approval_evidence.append(ratio_income_debt)
-                    elif var == 'ratio_debt_net_worth':
-                        approval_evidence.append(ratio_debt_net_worth)
-                    elif var == 'credit_history':
-                        approval_evidence.append(evidence.get('credit_history', 0))
-                    elif var == 'loan_amount':
-                        approval_evidence.append(loan_amount)
-                    elif var == 'loan_term':
-                        approval_evidence.append(loan_term)
-                    elif var == 'defaulted':
-                        approval_evidence.append(defaulted_score)
-                    else:
-                        approval_evidence.append(0)
-                
-                approval_score = np.dot(approval_cpd.beta, approval_evidence)
-                approval_prob = np.clip(approval_score, 0, 1)
-                
-                # Apply age-based penalty (since model doesn't have enough data for older people)
-                age = user_info['age']
-                if age >= 50:
-                    # Reduce approval probability for older applicants
-                    # Age 50: multiply by 0.9, Age 60: multiply by 0.5, Age 65: multiply by 0.2
-                    age_factor = max(0.2, 1.0 - (age - 45) * 0.03)
-                    approval_prob *= age_factor
-                
-                # Also penalize if loan term extends past retirement age (65)
-                end_age = age + loan_term
-                if end_age > 65:
-                    # Reduce probability based on how far past retirement the loan extends
-                    retirement_factor = max(0.1, 1.0 - (end_age - 65) * 0.05)
-                    approval_prob *= retirement_factor
-                monthly_payment = evidence['monthly_payment']
-                
-                # Store result
-                results.append({
-                    'amount': loan_amount,
-                    'term': loan_term,
-                    'payment': monthly_payment,
-                    'probability': approval_prob
-                })
-                
-                # Display result
-                prob_color = S_GREEN if approval_prob > 0.7 else S_YELLOW if approval_prob > 0.4 else S_RED
-                print(f"{loan_amount:>15,.0f} {loan_term:>6}y {monthly_payment:>15,.0f} "
-                      f"{prob_color}{approval_prob:>19.1%}{E_RED if approval_prob < 0.4 else E_YELLOW if approval_prob < 0.7 else E_GREEN}")
-                
-            except Exception as e:
-                print(f"{S_RED}Error calculating for {loan_amount} CZK, {loan_term}y: {e}{E_RED}")
-            
-            loan_amount += step_amount
-    
-    # Find best scenario
-    if results:
-        best = max(results, key=lambda x: x['probability'])
-        print(f"\n{S_CYAN}=== Best Loan Scenario ==={E_CYAN}")
-        print(f"Amount: {best['amount']:,.0f} CZK")
-        print(f"Term: {best['term']} years")
-        print(f"Monthly Payment: {best['payment']:,.0f} CZK")
-        print(f"Approval Probability: {best['probability']:.1%}")
+                choice = int(input("\nChoose option (1-6): "))
+                if 1 <= choice <= 6:
+                    return choice
+                print_invalid_input(f"Please enter number between 1-6. [{i}/3]")
+            except ValueError:
+                print_invalid_input(f"Please enter a valid number. [{i}/3]")
+
+    def print_mortgage_approval_prob(self, mortgage_applicant_data, model_gbn, loan_amount, loan_term):
+        if mortgage_applicant_data["housing_status"] == "homeless":
+            approval_prob = 0.0
+            print(f"\n{S_RED}Loan automatically rejected: no permanent residence{E_RED}")
+        else:
+            approval_prob = self.predict_loan_approval(model_gbn, mortgage_applicant_data, loan_amount, loan_term)
+
+        if approval_prob > 0.6:
+            print(f"\nMortgage approval probability: {S_GREEN}{approval_prob:.1%}{E_GREEN}")
+        elif approval_prob < 0.4:
+            print(f"\nMortgage approval probability: {S_RED}{approval_prob:.1%}{E_RED}")
+        else:
+            print(f"\nMortgage approval probability: {S_YELLOW}{approval_prob:.1%}{E_YELLOW}")
+
+    def main(self):
+        # handle first-ever program running.
+        self.set_up_all()
+        print_press_enter_to_continue()
+
+        # handle other program runs.
+        while 1:
+            option = self.options()
+            if option == 4:
+                self.set_up_all()
+
+            print_press_enter_to_continue()
+
+
+
+    def set_up_all(self):
+        self.collect_main_user_info()
+        self.collect_datasets_user_info()
+        self.generate_csv_dataset()
+        model_gbn = self.train_and_validate_gbn()
+        mortgage_applicant_data = self.collect_other_user_info()
+
+        loan_amount = self.validate_input_numerical(
+            "\nEnter loan amount (CZK): ",
+            min_val=100000,
+            max_val=TRILLION,
+            data_type=int
+        )
+        
+        loan_term = self.validate_input_numerical(
+            "Enter loan term (years): ",
+            min_val=1,
+            max_val=35,
+            data_type=int
+        )
+
+        self.print_mortgage_applicant_info(mortgage_applicant_data, loan_amount, loan_term)
+        self.print_mortgage_approval_prob(mortgage_applicant_data, model_gbn, loan_amount, loan_term)
 
 if __name__ == "__main__":
-    main()
+    handler = InputHandler()
+    handler.main()

@@ -30,12 +30,18 @@ class DataGenerator:
         max_num_records = 1e15
         warning_num_records = 1e7
 
+        if self.num_records < 100:
+            print_error_handling("Number of records should be at least 100.")
+        if self.interest_rate > 0.27:
+            print_error_handling("Interest rate is unrealistically high. Set interest rate between 0 and 27.")
+        if self.num_records == 0:
+            print_error_handling("CSV dataset does not contain any records.")
         if self.num_records >= warning_num_records:
             print_warning_handling("number of records is very large number. Data generation may take a while!")
         if self.num_records > max_num_records:
             print_error_handling(f"number of records exceeded the maximum permissible value {max_num_records:.0}")
         if self.epsilon < 0 or self.epsilon == 1:
-            print_error_handling("epsilon must be greater than or equal to zero.")
+            print_warning_handling("number of records is very large number. Data generation may take a while!")
         if self.avg_salary < 0 or self.avg_salary == 0:
             print_error_handling("avg_salary must be greater than or equal to zero.")
         if self.interest_rate < 0:
@@ -249,6 +255,7 @@ class DataGenerator:
 
     def generate_realistic_data(self, progress_bar=True):
         self.initialize_header()
+        print()
 
         with open(self.csv_path, mode="a", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)
@@ -281,6 +288,8 @@ class DataGenerator:
                     self.calculate_loan_approved(None)
                 except Exception as e:
                     print(f"{S_RED}ERROR{E_RED}: Progress bar does not work. {e}")
+
+        print("")
 
     def analyze_distribution(self, column_name="loan_approved", bins=10):
         """
@@ -616,6 +625,7 @@ class DataGenerator:
             reported_monthly_income = generate_reported_monthly_income()
 
             def generate_housing_status():
+
                 if reported_monthly_income > self.avg_salary * 4:
                     r = self.generate_random_float_from_0_to_1()
                     if r >= 0 and r < 0.70: return "own"
@@ -971,7 +981,7 @@ class DataGenerator:
 
 
 if __name__ == "__main__":
-    dataCreate = DataGenerator(35000, 1, int(1e5))
+    dataCreate = DataGenerator(1, 0.05, int(1e5))
     dataCreate.generate_realistic_data(True)
     dataCreate.remove_wrong_rows(True, None)
     dataCreate.analyze_distribution()

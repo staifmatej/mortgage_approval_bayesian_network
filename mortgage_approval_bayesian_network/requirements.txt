@@ -11,3 +11,4 @@ os
 csv
 tqdm.rich
 tqdm
+tabulate

@@ -103,7 +103,7 @@ class GaussianBayesianNetwork():
                 
                 if max_val > max_extreme_values or min_val > max_extreme_values:
                     if not issues_found:
-                        print_wrong_handling("Numerical instability detected in the data!")
+                        print_warning_handling("Numerical instability detected in the data!")
                         print(f"\n{S_BOLD}Regression matrix has extreme condition number, which may leads to:{E_BOLD}")
                         print("  - Division by zero during matrix inversion")
                         print("  - Overflow during multiplication operations")
