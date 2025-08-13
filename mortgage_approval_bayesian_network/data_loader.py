@@ -1,6 +1,5 @@
 import pandas as pd
-from constants import *
-
+from utils.error_print import *
 
 class LoanDataLoader:
     def __init__(self):
@@ -12,14 +11,12 @@ class LoanDataLoader:
             try:
                 self._data = pd.read_csv(csv_path)
             except Exception as e:
-                print(f"{S_RED}ERROR{E_RED}: {e}")
-                exit(1)
+                print_error_handling(f"{e}")
         return self._data
 
     def get_data_for_cpd(self, cpd_name):
         if self._data is None:
-            print(f"{S_RED}ERROR{E_RED}: Data are not available.")
-            exit(1)
+            print_error_handling(f"Data are not available.")
         if cpd_name == "stability_income":
             return self._data[['government_employee',
                                 'age',
@@ -31,10 +28,7 @@ class LoanDataLoader:
         if cpd_name == "total_stable_income_monthly":
             return self._data[['reported_monthly_income']]
 
-        # TODO: Add more CPD mappings here
-
-        print(f"{S_YELLOW}WARNING{E_YELLOW}: Unknown CPD name: {cpd_name}")
-        exit(1)
+        print_error_handling(f"Unknown CPD name: {cpd_name}")
 
     def get_all_data(self):
         return self._data

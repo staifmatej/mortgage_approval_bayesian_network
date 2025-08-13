@@ -1,30 +1,22 @@
 import numpy as np
-import logging
 import pandas as pd
 
-logging.getLogger('numexpr').setLevel(logging.WARNING) # INFO:numexpr.utils:NumExpr
-from pgmpy.inference import VariableElimination
-
 from data_generation_realistic import encode_age_group
-from gaussian_bayesian_network import loan_approval_model
-from constants import *
-
+from gaussian_bayesian_network import GaussianBayesianNetwork
+from utils.error_print import *
+from utils.constants import *
 
 def calculate_monthly_payment(loan_amount, loan_term_years, annual_rate=0.05):
     """Calculate monthly payment using standard amortization formula"""
     if loan_amount <= 0 or loan_term_years <= 0:
         return 0
-    
+
     monthly_rate = annual_rate / 12
     n_payments = loan_term_years * 12
-    
-    monthly_payment = loan_amount * (monthly_rate * (1 + monthly_rate)**n_payments) / \
-                      ((1 + monthly_rate)**n_payments - 1)
-    
-    return monthly_payment
 
-def print_wrong_input_message(string: str):
-    print(f"{S_YELLOW}Wrong Input{E_YELLOW}: {string}")
+    monthly_payment = loan_amount * (monthly_rate * (1 + monthly_rate)**n_payments) / ((1 + monthly_rate)**n_payments - 1)
+
+    return monthly_payment
 
 def collect_user_info():
     """Collect applicant information from banker"""
@@ -59,18 +51,18 @@ def collect_user_info():
         # age
         for i in range(4):
             if i > 2:
-                exit(1)
+                print_error_handling("in main.py")
             else:
                 try:
                     age = int(input("Age: ").strip())
                 except Exception as e:
-                    print_wrong_input_message(f"{e}. [{i+1}/3]")
+                    print_wrong_handling(f"{e}. [{i+1}/3]")
                     continue
                 if age < 18:
-                    print_wrong_input_message(f"Age must be at least 18. [{i + 1}/3]")
+                    print_wrong_handling(f"Age must be at least 18. [{i + 1}/3]")
                     continue
                 if age > 65:
-                    print_wrong_input_message(f"Sorry, we don't provide new mortgages to people over 65. [{i+1}/3]")
+                    print_wrong_handling(f"Sorry, we don't provide new mortgages to people over 65. [{i+1}/3]")
                     continue
                 if age >= 18 and age <= 65:
                     break
@@ -78,15 +70,15 @@ def collect_user_info():
         # government_employee
         for i in range(4):
             if i > 2:
-                exit(1)
+                print_error_handling("in main.py")
             else:
                 try:
                     government_employee = input("Government employee? (yes/no): ").strip().lower()
                 except Exception as e:
-                    print_wrong_input_message(f"{e}. [{i+1}/3]")
+                    print_wrong_handling(f"{e}. [{i+1}/3]")
                     continue
                 if government_employee != "yes" and government_employee != "no":
-                    print_wrong_input_message(f"Please enter \"yes\" or \"no\". [{i+1}/3]")
+                    print_wrong_handling(f"Please enter \"yes\" or \"no\". [{i+1}/3]")
                     continue
                 if government_employee == "yes" or government_employee == "no":
                     break
@@ -94,31 +86,31 @@ def collect_user_info():
         # highest_education
         for i in range(4):
             if i > 2:
-                exit(1)
+                print_error_handling("in main.py")
             else:
                 try:
                     highest_education = input("Highest education (basic / high_school / bachelor / master / phd): ").lower().strip()
                 except Exception as e:
-                    print_wrong_input_message(f"{e}. [{i + 1}/3]")
+                    print_wrong_handling(f"{e}. [{i + 1}/3]")
                     continue
                 valid_options = ["basic", "high_school", "bachelor", "master", "phd"]
                 if highest_education not in valid_options:
-                    print_wrong_input_message(f"Please enter \"basic\", \"high_school\", \"bachelor\", \"master\" or \"phd\". [{i+1}/3]")
+                    print_wrong_handling(f"Please enter \"basic\", \"high_school\", \"bachelor\", \"master\" or \"phd\". [{i+1}/3]")
                     continue
                 break
 
         # study_status
         for i in range(4):
             if i > 2:
-                exit(1)
+                print_error_handling("in main.py")
             else:
                 try:
                     study_status = input("Is mortgage applicant student? (yes / no): ").strip().lower()
                 except Exception as e:
-                    print_wrong_input_message(f"{e}. [{i + 1}/3]")
+                    print_wrong_handling(f"{e}. [{i + 1}/3]")
                     continue
                 if study_status not in ["yes", "no"]:
-                    print_wrong_input_message(f"Please enter \"yes\" or \"no\". [{i+1}/3]")
+                    print_wrong_handling(f"Please enter \"yes\" or \"no\". [{i+1}/3]")
                     continue
                 break
 
@@ -134,16 +126,16 @@ def collect_user_info():
             # employment_type
             for i in range(4):
                 if i > 2:
-                    exit(1)
+                    print_error_handling("in main.py")
                 else:
                     try:
                         employment_type = input("Employment type (unemployed/temporary/freelancer/permanent): ").strip().lower()
                     except Exception as e:
-                        print_wrong_input_message(f"{e}. [{i+1}/3]")
+                        print_wrong_handling(f"{e}. [{i+1}/3]")
                         continue
                     valid_employment_types = ["unemployed", "temporary", "freelancer", "permanent"]
                     if employment_type not in valid_employment_types:
-                        print_wrong_input_message(f"Please enter \"unemployed\", \"temporary\", \"freelancer\" or \"permanent\". [{i+1}/3]")
+                        print_wrong_handling(f"Please enter \"unemployed\", \"temporary\", \"freelancer\" or \"permanent\". [{i+1}/3]")
                         continue
                     break
 
@@ -153,30 +145,30 @@ def collect_user_info():
                 # len_employment
                 for i in range(4):
                     if i > 2:
-                        exit(1)
+                        print_error_handling("in main.py")
                     else:
                         try:
                             len_employment = int(input("How many years is applicant in same company employee? ").strip())
                         except Exception as e:
-                            print_wrong_input_message(f"{e}. [{i+1}/3]")
+                            print_wrong_handling(f"{e}. [{i+1}/3]")
                             continue
                         if len_employment < 0 or len_employment > 189:
-                            print_wrong_input_message(f"Please enter number between 0 and 189. [{i+1}/3]")
+                            print_wrong_handling(f"Please enter number between 0 and 189. [{i+1}/3]")
                             continue
                         break
 
                 # size_of_company
                 for i in range(4):
                     if i > 2:
-                        exit(1)
+                        print_error_handling("in main.py")
                     else:
                         try:
                             size_of_company = int(input("Number of company employees, where applicant works: ").strip())
                         except Exception as e:
-                            print_wrong_input_message(f"{e}. [{i+1}/3]")
+                            print_wrong_handling(f"{e}. [{i+1}/3]")
                             continue
                         if size_of_company < 0 or size_of_company > 1e30:
-                            print_wrong_input_message(f"Please enter number between 0 and 1e30. [{i+1}/3]")
+                            print_wrong_handling(f"Please enter number between 0 and 1e30. [{i+1}/3]")
                             continue
                         break
 
@@ -189,45 +181,45 @@ def collect_user_info():
         # reported_monthly_income
         for i in range(4):
             if i > 2:
-                exit(1)
+                print_error_handling("in main.py")
             else:
                 try:
                     reported_monthly_income = float(input("Monthly income (in Czech Crowns): ").strip())
                 except Exception as e:
-                    print_wrong_input_message(f"{e}. [{i+1}/3]")
+                    print_wrong_handling(f"{e}. [{i+1}/3]")
                     continue
                 if reported_monthly_income < 0 or reported_monthly_income > 1e30:
-                    print_wrong_input_message(f"Please enter number between 0 and 1e30. [{i+1}/3]")
+                    print_wrong_handling(f"Please enter number between 0 and 1e30. [{i+1}/3]")
                     continue
                 break
 
         # total_existing_debt
         for i in range(4):
             if i > 2:
-                exit(1)
+                print_error_handling("in main.py")
             else:
                 try:
                     total_existing_debt = float(input("Total existing debt (in Czech Crowns): ").strip())
                 except Exception as e:
-                    print_wrong_input_message(f"{e}. [{i+1}/3]")
+                    print_wrong_handling(f"{e}. [{i+1}/3]")
                     continue
                 if total_existing_debt < 0 or total_existing_debt > 1e30:
-                    print_wrong_input_message(f"Please enter positive number between 0 and 1e30. [{i+1}/3]")
+                    print_wrong_handling(f"Please enter positive number between 0 and 1e30. [{i+1}/3]")
                     continue
                 break
 
         # extra_net_worth
         for i in range(4):
             if i > 2:
-                exit(1)
+                print_error_handling("in main.py")
             else:
                 try:
                     extra_net_worth = input("Do you have investments or do you owned property? (yes/no): ").lower().strip()
                 except Exception as e:
-                    print_wrong_input_message(f"{e}. [{i+1}/3]")
+                    print_wrong_handling(f"{e}. [{i+1}/3]")
                     continue
                 if extra_net_worth not in ["yes", "no"]:
-                    print_wrong_input_message(f"Please enter \"yes\" or \"no\". [{i+1}/3]")
+                    print_wrong_handling(f"Please enter \"yes\" or \"no\". [{i+1}/3]")
                     continue
                 break
 
@@ -235,30 +227,30 @@ def collect_user_info():
             # investments_value
             for i in range(4):
                 if i > 2:
-                    exit(1)
+                    print_error_handling("in main.py")
                 else:
                     try:
                         investments_value = float(input("Investments value (in Czech Crowns): ").strip())
                     except Exception as e:
-                        print_wrong_input_message(f"{e}. [{i+1}/3]")
+                        print_wrong_handling(f"{e}. [{i+1}/3]")
                         continue
                     if investments_value < 0 or investments_value > 1e100:
-                        print_wrong_input_message(f"Please enter number between 0 and 1e100. [{i+1}/3]")
+                        print_wrong_handling(f"Please enter number between 0 and 1e100. [{i+1}/3]")
                         continue
                     break
 
             # property_owned_value
             for i in range(4):
                 if i > 2:
-                    exit(1)
+                    print_error_handling("in main.py")
                 else:
                     try:
                         property_owned_value = float(input("Property owned value (in Czech Crowns): ").strip())
                     except Exception as e:
-                        print_wrong_input_message(f"{e}. [{i+1}/3]")
+                        print_wrong_handling(f"{e}. [{i+1}/3]")
                         continue
                     if property_owned_value < 0 or property_owned_value > 1e100:
-                        print_wrong_input_message(f"Please enter number between 0 and 1e100. [{i+1}/3]")
+                        print_wrong_handling(f"Please enter number between 0 and 1e100. [{i+1}/3]")
                         continue
                     break
         else:
@@ -269,35 +261,35 @@ def collect_user_info():
         # housing_status
         for i in range(4):
             if i > 2:
-                exit(1)
+                print_error_handling("in main.py")
             else:
                 try:
                     housing_status = input("Housing status (rent/mortgage/own): ").lower().strip()
                 except Exception as e:
-                    print_wrong_input_message(f"{e}. [{i+1}/3]")
+                    print_wrong_handling(f"{e}. [{i+1}/3]")
                     continue
                 if housing_status not in ["rent", "mortgage", "own"]:
-                    print_wrong_input_message(f"Please enter \"rent\", \"mortgage\" or \"own\". [{i+1}/3]")
+                    print_wrong_handling(f"Please enter \"rent\", \"mortgage\" or \"own\". [{i+1}/3]")
                     continue
                 break
 
         # credit_history
         for i in range(4):
             if i > 2:
-                exit(1)
+                print_error_handling("in main.py")
             else:
                 try:
                     credit_history = input("Mortgage applicant credit score (bad/fair/good/excellent): ").lower().strip()
                 except Exception as e:
-                    print_wrong_input_message(f"{e}. [{i+1}/3]")
+                    print_wrong_handling(f"{e}. [{i+1}/3]")
                     continue
                 if credit_history not in ["bad", "fair", "good", "excellent"]:
-                    print_wrong_input_message(f"Please enter \"bad\", \"fair\", \"good\" or \"excellent\". [{i+1}/3]")
+                    print_wrong_handling(f"Please enter \"bad\", \"fair\", \"good\" or \"excellent\". [{i+1}/3]")
                     continue
                 break
 
     except Exception as e:
-        print_wrong_input_message(str(e))
+        print_wrong_handling(str(e))
 
     return {
         'age': age,

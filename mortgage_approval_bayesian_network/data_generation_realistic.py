@@ -3,12 +3,12 @@ import os
 import random
 import time
 import math
-
 import pandas as pd
 import numpy as np
-from constants import *
-
 import warnings
+from scipy.stats import beta
+
+from utils.error_print import *
 
 warnings.filterwarnings("ignore", message=".*rich is experimental.*")
 
@@ -20,40 +20,6 @@ def encode_age_group(age):
     age_old = 1 if age >= 60 else 0
     return age_young, age_prime, age_senior, age_old
 
-def remove_wrong_rows(path_csv="datasets/mortgage_applications.csv"):
-    df = pd.read_csv(path_csv)
-    
-    # Function to check if value has at most 5 decimal places
-    def has_max_5_decimals(x):
-        str_x = str(x)
-        if '.' in str_x:
-            decimal_part = str_x.split('.')[1]
-            return len(decimal_part) <= 5
-        return True
-    
-    # Check both ratio_income_to_avg_salary and stability_income columns
-    mask_ratio = df['ratio_income_to_avg_salary'].apply(has_max_5_decimals)
-    mask_stability = df['stability_income'].apply(has_max_5_decimals)
-    mask_1 = df['property_owned_value'].apply(has_max_5_decimals)
-    mask_2 = df['reported_monthly_income'].apply(has_max_5_decimals)
-    mask_3 = df['total_existing_debt'].apply(has_max_5_decimals)
-    mask_4 = df['loan_amount'].apply(has_max_5_decimals)
-    mask_5 = df['monthly_payment'].apply(has_max_5_decimals)
-    mask_6 = df['core_net_worth'].apply(has_max_5_decimals)
-    mask_7 = df['ratio_payment_to_income'].apply(has_max_5_decimals)
-    mask_8 = df['ratio_income_debt'].apply(has_max_5_decimals)
-    mask_9 = df['ratio_debt_net_worth'].apply(has_max_5_decimals)
-
-    # Odstranit také řádky kde defaulted je 0
-    mask_defaulted = df['defaulted'] != 0
-
-    # Keep only rows where all conditions are met
-    mask_combined = mask_ratio & mask_stability & mask_1 & mask_2 & mask_3 & mask_4 & mask_5 & mask_6 & mask_7 & mask_8 & mask_9 & mask_defaulted
-    df_clean = df[mask_combined]
-    
-    df_clean.to_csv(path_csv, index=False)
-
-
 class DataGenerator:
     def __init__(self, avg_salary, interest_rate, num_records):
         self.avg_salary = avg_salary
@@ -62,25 +28,25 @@ class DataGenerator:
         self.csv_path = "datasets/mortgage_applications.csv"
         self.epsilon = 1e-8
         max_num_records = 1e15
+        warning_num_records = 1e7
 
+        if self.num_records >= warning_num_records:
+            print_warning_handling("number of records is very large number. Data generation may take a while!")
         if self.num_records > max_num_records:
-            print(f"{S_RED}ERROR{E_RED}: number of records exceeded the maximum permissible value {S_BOLD}{max_num_records:.0}{E_BOLD}.")
-            exit(1)
+            print_error_handling(f"number of records exceeded the maximum permissible value {max_num_records:.0}")
         if self.epsilon < 0 or self.epsilon == 1:
-            print(f"{S_RED}ERROR{E_RED}: epsilon must be greater than or equal to zero.")
-            exit(1)
+            print_error_handling("epsilon must be greater than or equal to zero.")
         if self.avg_salary < 0 or self.avg_salary == 0:
-            print(f"{S_RED}ERROR{E_RED}: avg_salary must be greater than or equal to zero.")
-            exit(1)
+            print_error_handling("avg_salary must be greater than or equal to zero.")
         if self.interest_rate < 0:
-            print(f"{S_RED}ERROR{E_RED}: interest rate must be greater than zero. ")
-            exit(1)
+            print_error_handling("interest rate must be greater than zero.")
 
     def initialize_header(self):
         self.create_folder()
         self.seed_random()
         with open(self.csv_path, mode="w", newline="", encoding="utf-8") as file:
             csv.writer(file).writerow(["id",
+                                       "avg_salary",
                                        "government_employee",
                                        "highest_education",
                                        "employment_type",
@@ -135,16 +101,57 @@ class DataGenerator:
         Investment simulation where a person saves 'realistic_investment_value' percent of
         their monthly salary each month for 'investment_interval' years with 8% annual return.
         """
+        if age <= 18:
+            return 0
         investment_interval = age - 18
-        realistic_investment_value = self.generate_random_int_from_x_to_y(10,3000) / 100
+        realistic_investment_value = self.generate_random_int_from_x_to_y(10,70) / 100 # Person can save up to 70% per month.
         savings_for_investments_per_year = reported_monthly_income * realistic_investment_value * 12
         return (savings_for_investments_per_year * (((1.08)**investment_interval-1)/0.08)*1.08) # SPY has historically 7-9% annually return.
 
     def generate_random_int_from_x_to_y(self, x_from, y_to):
         return random.randint(x_from, y_to)
 
+    def remove_wrong_rows(self, debug_print=False, pbar=None):
+        df = pd.read_csv(self.csv_path)
+
+        if pbar is not None: pbar.update(1)
+
+        def has_max_5_decimals(x):
+            str_x = str(x)
+            if '.' in str_x:
+                decimal_part = str_x.split('.')[1]
+                return len(decimal_part) <= 5
+            return True
+
+        mask_ratio = df['ratio_income_to_avg_salary'].apply(has_max_5_decimals)
+        mask_stability = df['stability_income'].apply(has_max_5_decimals)
+        mask_1 = df['property_owned_value'].apply(has_max_5_decimals)
+        mask_2 = df['reported_monthly_income'].apply(has_max_5_decimals)
+        mask_3 = df['total_existing_debt'].apply(has_max_5_decimals)
+        mask_4 = df['loan_amount'].apply(has_max_5_decimals)
+        mask_5 = df['monthly_payment'].apply(has_max_5_decimals)
+        mask_6 = df['core_net_worth'].apply(has_max_5_decimals)
+        mask_7 = df['ratio_payment_to_income'].apply(has_max_5_decimals)
+        mask_8 = df['ratio_income_debt'].apply(has_max_5_decimals)
+        mask_9 = df['ratio_debt_net_worth'].apply(has_max_5_decimals)
+
+
+        if pbar is not None: pbar.update(1)
+        mask_defaulted = df['defaulted'] != 0
+
+        # Keep only rows where all conditions are met
+        mask_combined = mask_ratio & mask_stability & mask_1 & mask_2 & mask_3 & mask_4 & mask_5 & mask_6 & mask_7 & mask_8 & mask_9 & mask_defaulted
+        df_clean = df[mask_combined]
+
+        if debug_print:
+            removed_rows = len(df) - len(df_clean)
+            print(f"Removed {removed_rows} rows (unrounded values or defaulted=0)")
+
+        if pbar is not None: pbar.update(1)
+
+        df_clean.to_csv(self.csv_path, index=False)
+
     def find_thresholds_for_col(self, column_name: str) -> list:
-        # Do NOT regenerate data - just read existing CSV
         df = pd.read_csv(self.csv_path)
         values = df[column_name]
         thresholds = []
@@ -153,7 +160,6 @@ class DataGenerator:
             percentile = values.quantile(i / 100)
             thresholds.append(percentile)
 
-        # Nepřidávat další hodnotu - máme přesně 101 hodnot (0-100 percentil)
         return thresholds
 
     def delete_invalid_rows(self, df):
@@ -201,48 +207,34 @@ class DataGenerator:
 
     def run_defaulted_generation(self, pbar):
         df = pd.read_csv(self.csv_path)
-
+        if pbar is not None: pbar.update(1)
         df = self.delete_negative_payments(df)
         df = self.delete_invalid_rows(df)
-        # Zaokrouhlit hodnoty - DŮLEŽITÉ: ratio sloupce byly přepočítány v run_ratios_standardization
         df = self.round_values(df)
 
-        # Calculate DEFAULT RISK (higher = worse, more likely to default)
-        # Start with base risk of 0.15 (most people are good borrowers)
+        # BASE LINE
         df["defaulted"] = 0.15
 
         df["defaulted"] = np.where(df["ratio_income_to_avg_salary"] == 0, df["defaulted"] * 100, df["defaulted"])
         df["defaulted"] = np.where(df["ratio_payment_to_income"] == 0, df["defaulted"] * 100, df["defaulted"])
 
-        # 1. Payment burden - most critical factor (weight: 0.25)
-        # If payment > 40% of income, it's very risky
         payment_risk = df["ratio_payment_to_income"].clip(0, 1)
         df["defaulted"] += payment_risk * 0.25
-        
-        # 2. Total debt burden (weight: 0.15)
-        # High debt relative to income is risky
+
         debt_income_risk = df["ratio_income_debt"].clip(0, 1)
         df["defaulted"] += debt_income_risk * 0.15
 
-        # 3. Leverage ratio (weight: 0.10)
-        # High debt relative to net worth is risky
         debt_worth_risk = df["ratio_debt_net_worth"].clip(0, 1)
         df["defaulted"] += np.where(df["ratio_debt_net_worth"] != 0, debt_worth_risk * 0.10, 0)
 
-        # 4. Income level relative to average (weight: 0.15)
-        # Lower income = higher risk
+        if pbar is not None: pbar.update(1)
         income_risk = 1 - df["ratio_income_to_avg_salary"].clip(0, 1)
         df["defaulted"] += income_risk * 0.15
 
-
-        
-        # Apply categorical adjustments
-        # Housing status
         df.loc[df["housing_status"] == "own", "defaulted"] *= 0.85      # 15% risk reduction
         df.loc[df["housing_status"] == "mortgage", "defaulted"] *= 1.05  # 5% risk increase
         df.loc[df["housing_status"] == "rent", "defaulted"] *= 1.15      # 15% risk increase
         
-        # Credit history - major impact
         df.loc[df["credit_history"] == "excellent", "defaulted"] *= 0.5  # 50% risk reduction
         df.loc[df["credit_history"] == "good", "defaulted"] *= 0.75      # 25% risk reduction
         df.loc[df["credit_history"] == "fair", "defaulted"] *= 1.25      # 25% risk increase
@@ -251,6 +243,7 @@ class DataGenerator:
         df["defaulted"] = df["defaulted"].clip(0, 100)
         df["defaulted"] = np.round(df["defaulted"], 4)
 
+        if pbar is not None: pbar.update(1)
         df.to_csv(self.csv_path, index=False)
 
 
@@ -260,20 +253,23 @@ class DataGenerator:
         with open(self.csv_path, mode="a", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)
 
+            progress_bar_extra_value = 11
             if progress_bar is True:
                 try:
                     from tqdm.rich import tqdm
-                    with tqdm(total=self.num_records + 4, smoothing=1) as pbar:
+                    with tqdm(total=self.num_records + progress_bar_extra_value, smoothing=1) as pbar:
                         self.run_data_generation(writer, pbar)
                         self.run_ratios_standardization(pbar)
                         self.run_defaulted_generation(pbar)
+                        self.calculate_loan_approved(pbar)
                 except ImportError:
                     try:
                         from tqdm import tqdm
-                        with tqdm(total=self.num_records + 4, smoothing=1) as pbar:
+                        with tqdm(total=self.num_records + progress_bar_extra_value, smoothing=1) as pbar:
                             self.run_data_generation(writer, pbar)
                             self.run_ratios_standardization(pbar)
                             self.run_defaulted_generation(pbar)
+                            self.calculate_loan_approved(pbar)
                     except ImportError:
                         print(f"{S_RED}ERROR{E_RED}: Progress bar does not work.")
 
@@ -282,19 +278,103 @@ class DataGenerator:
                     self.run_data_generation(writer, None)
                     self.run_ratios_standardization(None)
                     self.run_defaulted_generation(None)
+                    self.calculate_loan_approved(None)
                 except Exception as e:
                     print(f"{S_RED}ERROR{E_RED}: Progress bar does not work. {e}")
 
+    def analyze_distribution(self, column_name="loan_approved", bins=10):
+        """
+        Analyzes distribution of values in specified column
+        Shows percentage of values in each 10% range (0-10, 10-20, etc.)
+        """
+        df = pd.read_csv(self.csv_path)
+        
+        if column_name not in df.columns:
+            print(f"Column '{column_name}' not found in dataset")
+            return
+        
+        max_value = df[column_name].max()
+        min_value = df[column_name].min()
+        
+        if max_value <= 1.1:
+            bin_edges = np.linspace(0, 1, bins + 1)
+            labels = [f"{int(i*10)}-{int((i+1)*10)}" for i in range(bins)]
+        else:
+            bin_edges = np.linspace(0, 100, bins + 1)
+            labels = [f"{int(i*10)}-{int((i+1)*10)}" for i in range(bins)]
+        
+        counts, _ = np.histogram(df[column_name], bins=bin_edges)
+        percentages = (counts / len(df)) * 100
+        
+        print(f"\nDistribution analysis for '{column_name}':")
+        print(f"Min: {min_value:.4f}, Max: {max_value:.4f}, Mean: {df[column_name].mean():.4f}")
+        print("-" * 30)
+        
+        for i, (label, pct) in enumerate(zip(labels, percentages)):
+            bar = "█" * int(pct / 2)
+            if label == "0-10":
+                print(f"{label}%:   {pct:5.1f}% |{bar}")
+            elif label == "90-100":
+                print(f"{label}%: {pct:5.1f}% |{bar}")
+            else:
+                print(f"{label}%:  {pct:5.1f}% |{bar}")
+
+        print("-" * 30)
+        print(f"Total records: {len(df)}")
+
+    def calculate_loan_approved(self, pbar=None):
+        df = pd.read_csv(self.csv_path)
+
+        if pbar is not None: pbar.update(1)
+
+        df["defaulted"] = df["defaulted"].clip(0, 2)
+
+        max_defaulted = max(df["defaulted"])
+        df["loan_approved"] = max_defaulted
+        df["loan_approved"] = df["loan_approved"] - df["defaulted"]
+        
+        df.loc[df["credit_history"] == "excellent", "loan_approved"] *= 1.1
+        df.loc[df["credit_history"] == "good", "loan_approved"] *= 1.05
+        df.loc[df["credit_history"] == "fair", "loan_approved"] *= 1.01
+        df.loc[df["credit_history"] == "bad", "loan_approved"] *= 0.7
+        if pbar is not None: pbar.update(1)
+
+        df["loan_approved"] -= df["ratio_payment_to_income"]*2
+        df["loan_approved"] -= df["ratio_debt_net_worth"]
+        
+        # Convert to probability using sigmoid function
+        # This maps values from (-inf, inf) to (0, 1)
+        df["loan_approved"] = 1 / (1 + np.exp(-df["loan_approved"]))
+
+
+        def adjust_values_to_spread_more_towards_edges(alpha_param = 0.6, beta_param = 0.6):
+            percentiles = df["loan_approved"].rank(pct=True)
+            df["loan_approved"] = beta.ppf(percentiles, alpha_param, beta_param)
+
+        adjust_values_to_spread_more_towards_edges()
+
+        if (df["loan_approved"] < float(0)).any():
+            print_error_handling("loan_approved has values smaller than 0.")
+        if (df["loan_approved"] > float(1)).any():
+            print_error_handling("loan_approved has values larger than 0.")
+
+        df["loan_approved"] = np.round(df["loan_approved"], 5)
+        df["loan_approved"] = df["loan_approved"].clip(0, 1)
+
+        if pbar is not None: pbar.update(1)
+        df.to_csv(self.csv_path, index=False)
+
+
     def run_ratios_standardization(self, pbar):
         df = pd.read_csv(self.csv_path)
+        if pbar is not None: pbar.update(1)
         for ratio in ["ratio_payment_to_income", "ratio_income_debt", "ratio_debt_net_worth", "ratio_income_to_avg_salary"]:
             thresholds_ratio = self.find_thresholds_for_col(ratio)
             values = df[ratio].values
             thresholds = np.array(thresholds_ratio)
             positions = np.searchsorted(thresholds, values) / 100
             df[ratio] = np.round(positions, 5)
-            if pbar is not None:
-                pbar.update(1)
+            if pbar is not None: pbar.update(1)
         df.to_csv(self.csv_path, index=False)
 
     def run_data_generation(self, writer, pbar=None):
@@ -306,6 +386,11 @@ class DataGenerator:
             def generate_id():
                 """Generate deterministically id."""
                 return i + 1
+
+            def generate_avg_salary():
+                return self.avg_salary
+
+            avg_salary = generate_avg_salary()
 
             def generate_government_employee():
                 """ 20% government_employee & 80% prob that person is not government_employee."""
@@ -623,12 +708,10 @@ class DataGenerator:
 
             def generate_total_existing_debt():
                 if housing_status == "mortgage":
-                    return property_owned_value * self.generate_base_value_property(
-                        reported_monthly_income) * self.generate_random_float_from_0_to_1()
+                    return property_owned_value * self.generate_random_float_from_0_to_1()
                 else:
                     if self.generate_random_float_from_0_to_1() > 0.50:
-                        return property_owned_value * 0.8 * self.generate_base_value_property(
-                            reported_monthly_income) * self.generate_random_float_from_0_to_1()
+                        return property_owned_value * 0.8 * self.generate_random_float_from_0_to_1()
                 return 0
 
             total_existing_debt = generate_total_existing_debt()
@@ -855,6 +938,7 @@ class DataGenerator:
 
             writer.writerow([
                 id,
+                avg_salary,
                 government_employee,
                 highest_education,
                 employment_type,
@@ -887,6 +971,7 @@ class DataGenerator:
 
 
 if __name__ == "__main__":
-    dataCreate = DataGenerator(35000, 1, int(1e4))
+    dataCreate = DataGenerator(35000, 1, int(1e5))
     dataCreate.generate_realistic_data(True)
-    remove_wrong_rows()
+    dataCreate.remove_wrong_rows(True, None)
+    dataCreate.analyze_distribution()
