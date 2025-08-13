@@ -151,12 +151,42 @@ class InputHandler():
             "Government employee? (yes/no): ",
             ["yes", "no"]
         )
+
+        min_basic_len = 10
+        min_high_school_age = min_basic_len + 4
+        min_bachelor_age = min_high_school_age + 1
+        min_master_age = min_bachelor_age + 1
+        min_phd_age = min_master_age + 2
         
-        highest_education = self.validate_input_alpha(
-            "Highest education (basic/high_school/bachelor/master/phd): ",
-            ["basic", "high_school", "bachelor", "master", "phd"]
-        )
+        # Validate education with age constraints (up to 3 attempts)
+        education_age_map = {
+            "phd": (min_phd_age, "PhD"),
+            "master": (min_master_age, "master's"),
+            "bachelor": (min_bachelor_age, "bachelor's"),
+            "high_school": (min_high_school_age, "high school")
+        }
         
+        for attempt in range(3):
+            highest_education = self.validate_input_alpha(
+                "Highest education (basic/high_school/bachelor/master/phd): ",
+                ["basic", "high_school", "bachelor", "master", "phd"]
+            )
+            
+            # Check if education is valid for the given age
+            if highest_education in education_age_map:
+                min_age, degree_name = education_age_map[highest_education]
+                if age < min_age:
+                    if attempt < 2:
+                        print_invalid_input(f"You cannot have a {degree_name} degree before age {min_age}! [{attempt+1}/3]")
+                    else:
+                        print_error_handling(f"You cannot have a {degree_name} degree before age {min_age}!")
+                        highest_education = "basic"  # Default to basic education
+                        break
+                else:
+                    break  # Valid education for age
+            else:
+                break  # Basic education - no age restriction
+
         study_status = self.validate_input_alpha(
             "Is mortgage applicant student? (yes/no): ",
             ["yes", "no"]
@@ -172,23 +202,17 @@ class InputHandler():
                 ["unemployed", "temporary", "freelancer", "permanent"]
             )
 
-            min_basic_len = 14
-            min_high_school_len = min_basic_len + 4
-            min_bachelor_len = min_high_school_len + 1
-            min_master_len = min_bachelor_len + 1
-            min_phd_len = min_master_len + 2
-
             max_study_time = 0
             if highest_education == "basic":
                 max_study_time = min_basic_len
             elif highest_education == "high_school":
-                max_study_time = min_high_school_len
+                max_study_time = min_high_school_age
             elif highest_education == "bachelor":
-                max_study_time = min_bachelor_len
+                max_study_time = min_bachelor_age
             elif highest_education == "master":
-                max_study_time = min_master_len
+                max_study_time = min_master_age
             elif highest_education == "phd":
-                max_study_time = min_phd_len
+                max_study_time = min_phd_age
 
             if employment_type != "unemployed":
                 len_employment = self.validate_input_numerical(
@@ -421,9 +445,15 @@ class InputHandler():
             option = self.options()
             if option == 4:
                 self.set_up_all()
+            elif option == 1:
+                self.set_up_only_dataset()
 
             print_press_enter_to_continue()
 
+
+    def set_up_only_dataset(self):
+        self.collect_datasets_user_info()
+        self.generate_csv_dataset()
 
 
     def set_up_all(self):
