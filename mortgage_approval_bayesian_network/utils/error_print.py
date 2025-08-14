@@ -1,10 +1,11 @@
 """Module for formatted error and warning message printing with color support."""
+import sys
 from utils.constants import S_RED, E_RED, S_YELLOW, E_YELLOW
 
 def print_error_handling(string: str):
     """Print error message in red color and exit program."""
     print(f"{S_RED}ERROR{E_RED}: {string}")
-    exit(1)
+    sys.exit(1)
 
 def print_invalid_input(string: str):
     """Print invalid input warning message in yellow color."""

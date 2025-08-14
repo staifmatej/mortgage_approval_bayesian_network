@@ -221,11 +221,16 @@ class TestGaussianBayesianNetwork(unittest.TestCase):
 
     def test_data_miss_handler(self):
         """Test handling of missing dataset"""
-        with patch('builtins.exit') as mock_exit:
-            gbn = GaussianBayesianNetwork()
-            gbn.data_miss_handler(None)
-            # exit is called from data_miss_handler
-            mock_exit.assert_called_with(1)
+        with patch('sys.exit') as mock_exit:
+            with patch('gaussian_bayesian_network.LoanDataLoader') as mock_loader:
+                mock_loader_instance = MagicMock()
+                mock_loader_instance.load_data.return_value = pd.DataFrame()
+                mock_loader.return_value = mock_loader_instance
+
+                gbn = GaussianBayesianNetwork()
+                gbn.data_miss_handler(None)
+                # exit is called from data_miss_handler
+                mock_exit.assert_called_with(1)
 
     def test_initialization_parameters(self):
         """Test initialization with different parameters"""
@@ -268,7 +273,7 @@ class TestGaussianBayesianNetwork(unittest.TestCase):
             mock_loader_instance.load_data.return_value = None
             mock_loader.return_value = mock_loader_instance
 
-            with patch('builtins.exit'):
+            with patch('sys.exit'):
                 # Should handle the error gracefully
                 gbn = GaussianBayesianNetwork(csv_path="nonexistent.csv")
                 self.assertEqual(gbn.csv_path, "nonexistent.csv")

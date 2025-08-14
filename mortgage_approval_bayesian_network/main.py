@@ -1,16 +1,17 @@
 """Main module for mortgage approval prediction system with user interaction interface."""
-import numpy as np
-import pandas as pd
 import os
 import warnings
+import traceback
+import pandas as pd
+import numpy as np
 import tabulate
+from gaussian_bayesian_network import GaussianBayesianNetwork
 
 from data_generation_realistic import encode_age_group
-from gaussian_bayesian_network import GaussianBayesianNetwork
 from data_generation_realistic import DataGenerator
-from utils.error_print import *
+from utils.error_print import print_error_handling, print_invalid_input
 from utils.constants import S_RED, E_RED, S_GREEN, E_GREEN, S_YELLOW, E_YELLOW, S_CYAN, E_CYAN
-from utils.print_press_enter_to_continue import *
+from utils.print_press_enter_to_continue import print_press_enter_to_continue
 
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 
@@ -36,7 +37,7 @@ class InputHandler():
                 print_error_handling("Error loading input")
             try:
                 user_input = input(prompt).strip().lower()
-            except Exception as e:
+            except (KeyboardInterrupt, EOFError, ValueError) as e:
                 print_invalid_input(f"{e}. [{i+1}/{max_attempts}]")
                 continue
 
@@ -49,12 +50,12 @@ class InputHandler():
 
             print_invalid_input(f"{error_msg}. [{i+1}/{max_attempts}]")
 
+        return None  # This line should never be reached due to print_error_handling above
+
     def validate_input_numerical(self, prompt, min_val=None, max_val=None, default_val=None, max_attempts=3, data_type=float):
         """Validate numerical user input within specified range with type conversion."""
-        """
-        Validates numerical input with range validation
-        """
-        if data_type != float and data_type != int:
+        # pylint: disable=too-many-arguments,too-many-positional-arguments
+        if data_type not in (float, int):
             print_error_handling("Function 'validate_input_numerical' except only data_type as float or int.")
 
         for i in range(max_attempts + 1):
@@ -85,7 +86,7 @@ class InputHandler():
             except ValueError:
                 print_invalid_input(f"Please enter a valid number. [{i+1}/{max_attempts}]")
                 continue
-            except Exception as e:
+            except (KeyboardInterrupt, EOFError) as e:
                 print_invalid_input(f"{e}. [{i+1}/{max_attempts}]")
                 continue
 
@@ -124,12 +125,12 @@ class InputHandler():
             custom_path = input(f"\nEnter path to your CSV file (default: {self.csv_path}): ").strip()
             if custom_path == "":
                 custom_path = self.csv_path
-            if os.path.exists(custom_path) == False:
-                print_invalid_input(f"File does not exist. [1/2]")
+            if not os.path.exists(custom_path):
+                print_invalid_input("File does not exist. [1/2]")
                 custom_path = input(f"\nEnter path to your CSV file (default: {self.csv_path}): ").strip()
                 if custom_path == "":
                     custom_path = self.csv_path
-                if os.path.exists(custom_path) == False:
+                if not os.path.exists(custom_path):
                     print_error_handling("File does not exist. [2/2]")
             if custom_path:
                 self.csv_path = custom_path
@@ -147,7 +148,8 @@ class InputHandler():
 
     def collect_other_user_info(self):
         """Collect detailed applicant information including demographics and financial status."""
-        print(f"\nPlease enter mortgage applicant information:\n")
+        # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+        print("\nPlease enter mortgage applicant information:\n")
 
         age = self.validate_input_numerical(
             "Age: ",
@@ -283,14 +285,13 @@ class InputHandler():
             ["rent", "mortgage", "own", "homeless"]
         )
 
-        if housing_status != "homeless":
+        if housing_status == "homeless":
+            credit_history = "bad"
+        else:
             credit_history = self.validate_input_alpha(
                 "Mortgage applicant credit score (bad/fair/good/excellent): ",
                 ["bad", "fair", "good", "excellent"]
             )
-
-        if housing_status == "homeless":
-            credit_history = "bad"
 
         return {
             'age': age,
@@ -310,7 +311,6 @@ class InputHandler():
 
     def calculate_monthly_payment(self, loan_amount, loan_term):
         """Calculate monthly payment using standard amortization formula."""
-        """Calculate monthly payment based on interest rate, loan amount and term."""
         la = loan_amount
         annual_rate = self.interest_rate
         years = loan_term
@@ -328,8 +328,7 @@ class InputHandler():
 
     def predict_loan_approval(self, model_gbn, mortgage_applicant_data, loan_amount, loan_term):
         """Predict loan approval probability using trained Bayesian Network model."""
-        """Predict loan approval probability using trained GBN model"""
-
+        # pylint: disable=too-many-locals
         age_young, age_prime, age_senior, age_old = encode_age_group(mortgage_applicant_data['age'])
 
         housing_map = {'rent': 0, 'mortgage': 1, 'own': 2}
@@ -371,19 +370,16 @@ class InputHandler():
                 if 'loan_approved' in variables_list:
                     idx = variables_list.index('loan_approved')
                     approval_prob = mean_values[0][idx]  # First row, idx column
-                else:
-                    print_error_handling("loan_approved not found in predictions.")
-            else:
-                print_error_handling("Unexpected result format from predict().")
+                    approval_prob = float(approval_prob)
+                    approval_prob = max(0, min(1, approval_prob))
+                    return approval_prob
+                print_error_handling("loan_approved not found in predictions.")
+                return 0.0
+            print_error_handling("Unexpected result format from predict().")
+            return 0.0
 
-            approval_prob = float(approval_prob)
-            approval_prob = max(0, min(1, approval_prob))
-
-            return approval_prob
-
-        except Exception as e:
+        except (ValueError, KeyError, AttributeError, IndexError, TypeError) as e:
             print_error_handling(f"Prediction failed: {e}")
-            import traceback
             traceback.print_exc()
             return 0.0
 
@@ -433,6 +429,8 @@ class InputHandler():
                 print_invalid_input(f"Please enter number between 1-6. [{i}/3]")
             except ValueError:
                 print_invalid_input(f"Please enter a valid number. [{i}/3]")
+
+        return None
 
     def print_mortgage_approval_prob(self, mortgage_applicant_data, model_gbn, loan_amount, loan_term):
         """Display loan approval probability with color-coded output based on approval status."""

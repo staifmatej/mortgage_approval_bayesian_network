@@ -1,14 +1,13 @@
 """Module implementing Gaussian Bayesian Network for mortgage approval prediction."""
-import networkx as nx
 import logging
 import warnings
 
 logging.getLogger('numexpr').setLevel(logging.WARNING) # INFO:numexpr.utils:NumExpr
-from pgmpy.models import LinearGaussianBayesianNetwork
+from pgmpy.models import LinearGaussianBayesianNetwork  # pylint: disable=wrong-import-position
 
-from data_loader import LoanDataLoader
-from utils.error_print import *
-from utils.constants import *
+from data_loader import LoanDataLoader # pylint: disable=wrong-import-position
+from utils.error_print import print_error_handling, print_warning_handling # pylint: disable=wrong-import-position
+from utils.constants import S_GREEN, E_GREEN, S_BOLD, E_BOLD # pylint: disable=wrong-import-position
 
 warnings.filterwarnings('ignore',category=RuntimeWarning, module='sklearn')
 
@@ -131,7 +130,7 @@ class GaussianBayesianNetwork():
         self.train_model()
         try:
             self.loan_approval_model.check_model()
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError, KeyError) as e:
             print_error_handling(f"Model validation error: {e}")
         print(f"{S_GREEN}☑ Model structure is valid!{E_GREEN}")
 

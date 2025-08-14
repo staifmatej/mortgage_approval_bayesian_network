@@ -32,7 +32,7 @@ class TestInputHandler(unittest.TestCase):
         """Test invalid alpha input validation with max attempts"""
         with patch('builtins.input', side_effect=['maybe', 'perhaps', 'definitely', 'yes']):
             # Patch exit to prevent actual exit
-            with patch('builtins.exit') as mock_exit:
+            with patch('sys.exit') as mock_exit:
                 self.handler.validate_input_alpha(
                     "Test prompt", ["yes", "no"], max_attempts=3
                 )
@@ -50,7 +50,7 @@ class TestInputHandler(unittest.TestCase):
     def test_validate_input_numerical_invalid(self):
         """Test invalid numerical input validation"""
         with patch('builtins.input', side_effect=['abc', '-5', '100', '30']):
-            with patch('builtins.exit') as mock_exit:
+            with patch('sys.exit') as mock_exit:
                 self.handler.validate_input_numerical(
                     "Enter age: ", min_val=18, max_val=65, data_type=int, max_attempts=3
                 )
@@ -222,15 +222,17 @@ class TestInputHandler(unittest.TestCase):
     def test_error_handling_robustness(self):
         """Test error handling in various parts of the system"""
         # Test invalid data type in validate_input_numerical
-        with patch('builtins.exit') as mock_exit:
-            self.handler.validate_input_numerical(
-                "Test", data_type=str  # Invalid data type
-            )
+        with patch('sys.exit', side_effect=SystemExit(1)) as mock_exit:
+            with self.assertRaises(SystemExit):
+                self.handler.validate_input_numerical(
+                    "Test", data_type=str  # Invalid data type
+                )
             mock_exit.assert_called_with(1)
 
         # Test calculate_monthly_payment with invalid arguments
-        with patch('builtins.exit') as mock_exit2:
-            self.handler.calculate_monthly_payment(0, 20)
+        with patch('sys.exit', side_effect=SystemExit(1)) as mock_exit2:
+            with self.assertRaises(SystemExit):
+                self.handler.calculate_monthly_payment(0, 20)
             mock_exit2.assert_called_with(1)
 
     def test_concurrent_predictions(self):

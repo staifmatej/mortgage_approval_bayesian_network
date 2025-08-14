@@ -15,26 +15,9 @@ class LoanDataLoader:
         if self._data is None:
             try:
                 self._data = pd.read_csv(csv_path)
-            except Exception as e:
+            except (FileNotFoundError, pd.errors.EmptyDataError, pd.errors.ParserError, IOError, OSError) as e:
                 print_error_handling(f"{e}")
         return self._data
-
-    def get_data_for_cpd(self, cpd_name):
-        """Get specific columns required for conditional probability distribution calculations."""
-        if self._data is None:
-            print_error_handling(f"Data are not available.")
-        if cpd_name == "stability_income":
-            return self._data[['government_employee',
-                                'age',
-                                'highest_education',
-                                'employment_type',
-                                'len_employment',
-                                'size_of_company']]
-
-        if cpd_name == "total_stable_income_monthly":
-            return self._data[['reported_monthly_income']]
-
-        print_error_handling(f"Unknown CPD name: {cpd_name}")
 
     def get_all_data(self):
         """Return the complete loaded dataset."""

@@ -11,7 +11,7 @@ import numpy as np
 from scipy.stats import beta
 
 from utils.constants import S_RED, E_RED
-from utils.error_print import print_error_handling
+from utils.error_print import print_error_handling, print_warning_handling
 
 warnings.filterwarnings("ignore", message=".*rich is experimental.*")
 
@@ -127,7 +127,7 @@ class DataGenerator:
         investment_interval = age - 18
         realistic_investment_value = self.generate_random_int_from_x_to_y(10,70) / 100 # Person can save up to 70% per month.
         savings_for_investments_per_year = reported_monthly_income * realistic_investment_value * 12
-        return (savings_for_investments_per_year * (((1.08)**investment_interval-1)/0.08)*1.08) # SPY has historically 7-9% annually return.
+        return savings_for_investments_per_year * (((1.08)**investment_interval-1)/0.08)*1.08 # SPY has historically 7-9% annually return.
 
     def generate_random_int_from_x_to_y(self, x_from, y_to):
         """Generate random integer between x_from and y_to inclusive."""
@@ -135,6 +135,7 @@ class DataGenerator:
 
     def remove_wrong_rows(self, debug_print=False, pbar=None):
         """Remove rows with invalid data and ensure decimal precision constraints."""
+        # pylint: disable=too-many-locals
         df = pd.read_csv(self.csv_path)
 
         if pbar is not None:
@@ -290,9 +291,9 @@ class DataGenerator:
             writer = csv.writer(file)
 
             progress_bar_extra_value = 11
-            if progress_bar is True:
+            if progress_bar:
                 try:
-                    from tqdm.rich import tqdm
+                    from tqdm.rich import tqdm  # pylint: disable=import-outside-toplevel
                     with tqdm(total=self.num_records + progress_bar_extra_value, smoothing=1) as pbar:
                         self.run_data_generation(writer, pbar)
                         self.run_ratios_standardization(pbar)
@@ -300,7 +301,7 @@ class DataGenerator:
                         self.calculate_loan_approved(pbar)
                 except ImportError:
                     try:
-                        from tqdm import tqdm
+                        from tqdm import tqdm  # pylint: disable=import-outside-toplevel
                         with tqdm(total=self.num_records + progress_bar_extra_value, smoothing=1) as pbar:
                             self.run_data_generation(writer, pbar)
                             self.run_ratios_standardization(pbar)
@@ -309,13 +310,13 @@ class DataGenerator:
                     except ImportError:
                         print(f"{S_RED}ERROR{E_RED}: Progress bar does not work.")
 
-            if progress_bar is False:
+            if not progress_bar:
                 try:
                     self.run_data_generation(writer, None)
                     self.run_ratios_standardization(None)
                     self.run_defaulted_generation(None)
                     self.calculate_loan_approved(None)
-                except Exception as e:
+                except (ImportError, AttributeError, TypeError, ValueError) as e:
                     print(f"{S_RED}ERROR{E_RED}: Progress bar does not work. {e}")
 
         print("")
@@ -346,13 +347,13 @@ class DataGenerator:
         print("-" * 30)
 
         for i, (label, pct) in enumerate(zip(labels, percentages)):
-            bar = "█" * int(pct / 2)
+            bar_chart = "█" * int(pct / 2)
             if label == "0-10":
-                print(f"{label}%:   {pct:5.1f}% |{bar}")
+                print(f"{label}%:   {pct:5.1f}% |{bar_chart}")
             elif label == "90-100":
-                print(f"{label}%: {pct:5.1f}% |{bar}")
+                print(f"{label}%: {pct:5.1f}% |{bar_chart}")
             else:
-                print(f"{label}%:  {pct:5.1f}% |{bar}")
+                print(f"{label}%:  {pct:5.1f}% |{bar_chart}")
 
         print("-" * 30)
         print(f"Total records: {len(df)}")
@@ -467,7 +468,7 @@ class DataGenerator:
                     return "phd"
                 return "basic"
 
-            id = generate_id()
+            record_id = generate_id()
             age = generate_age()
             government_employee = generate_government_employee()
             highest_education = generate_highest_education()
@@ -493,6 +494,7 @@ class DataGenerator:
                         return "freelancer"
                     if r >= 0.45 and r <= 1:  # 55%
                         return "permanent"
+                return "permanent"  # default case
 
             employment_type = generate_employment_type()
 
@@ -520,8 +522,7 @@ class DataGenerator:
                     penality += 5
                 max_possible_of_len_employment = age - adult_treshold - penality
 
-                if max_possible_of_len_employment < 0:
-                    max_possible_of_len_employment = 0
+                max_possible_of_len_employment = max(max_possible_of_len_employment, 0)
 
                 len_employment = max_possible_of_len_employment - self.generate_random_int_from_x_to_y(0,
                                                                                                        max_possible_of_len_employment)
@@ -551,13 +552,14 @@ class DataGenerator:
                 if employment_type == "permanent":
                     """From 0 up to 40 thousands of possible workers in companies."""
                     return self.generate_random_int_from_x_to_y(0, 40000)
+                return 0  # default case
 
             size_of_company = generate_size_of_company()
             age_young, age_prime, age_senior, age_old = encode_age_group(age)
 
             def generate_study_status():
                 """Study status is for people who are actively still studying."""
-                # pylint: disable=too-many-branches
+                # pylint: disable=too-many-branches,too-many-return-statements
                 if age > 26 and highest_education != "master":
                     r = self.generate_random_float_from_0_to_1()
                     if r >= 0 and r < 0.99:
@@ -585,10 +587,8 @@ class DataGenerator:
                     r = self.generate_random_float_from_0_to_1()
                     if r >= 0 and r < 0.97:
                         return "no"
-                    else:
-                        return "yes"
-                else:
-                    return "no"
+                    return "yes"
+                return "no"
 
             study_status = generate_study_status()
 
@@ -604,10 +604,10 @@ class DataGenerator:
 
                 if employment_type == "unemployed":
                     # unemployment benefit
-                    benefit = True if self.generate_random_float_from_0_to_1() > 0.7 else False
-                    if benefit is False:
+                    benefit = self.generate_random_float_from_0_to_1() > 0.7
+                    if not benefit:
                         return 0
-                    if benefit is True:
+                    if benefit:
                         return self.generate_random_int_from_x_to_y(0, int(min_salary / 2.22))
                     return 0
 
@@ -654,8 +654,7 @@ class DataGenerator:
                 if employment_type == "freelancer":
                     std_dev *= 1.8
 
-                if employment_type == "permanent" and (
-                        highest_education == "master" or highest_education == "phd") and len_employment > 20:
+                if employment_type == "permanent" and highest_education in ("master", "phd") and len_employment > 20:
                     std_dev *= 0.5
 
                 # Generate salaries with Gaussian distribution
@@ -722,6 +721,7 @@ class DataGenerator:
                     return "mortgage"
                 if r >= 0.20 and r <= 1.0:
                     return "rent"
+                return "rent"  # default case
 
             housing_status = generate_housing_status()
 
@@ -752,7 +752,7 @@ class DataGenerator:
             property_owned_value = generate_property_owned_value()
 
             def generate_investments_value():
-                if highest_education == "master" or highest_education == "phd":
+                if highest_education in ("master", "phd"):
                     if self.generate_random_float_from_0_to_1() > 0.50:
                         return self.generate_random_investments(age, reported_monthly_income)
 
@@ -1023,7 +1023,7 @@ class DataGenerator:
             ratio_income_to_avg_salary = generate_ratio_income_to_avg_salary()
 
             writer.writerow([
-                id,
+                record_id,
                 avg_salary,
                 government_employee,
                 highest_education,
