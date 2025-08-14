@@ -1,7 +1,5 @@
 """Module for interactive 'Press Enter to continue' functionality with animated dots."""
 import sys
-import select
-import tty
 
 def print_press_enter_to_continue():
     """Display animated 'Press Enter to continue' prompt with dot animation."""
@@ -16,6 +14,8 @@ def print_press_enter_to_continue():
         pass  # Not in IPython/Jupyter
     try:
         import termios  # pylint: disable=import-outside-toplevel
+        import tty      # pylint: disable=import-outside-toplevel
+        import select   # pylint: disable=import-outside-toplevel
         # Save terminal settings
         old_settings = termios.tcgetattr(sys.stdin)
         tty.setraw(sys.stdin.fileno())
