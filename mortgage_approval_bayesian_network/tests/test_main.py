@@ -338,11 +338,12 @@ class TestInputHandler(unittest.TestCase):
 
     def test_collect_main_user_info(self):
         """Test main user info collection"""
-        with patch('builtins.input', side_effect=['0.06', '45000']):
+        with patch('builtins.input', side_effect=['0.06', '45000', '67']):
             self.handler.collect_main_user_info()
             # validate_input_numerical rounds float values to 0 decimal places
             self.assertEqual(float(self.handler.interest_rate), 0.0)
             self.assertEqual(float(self.handler.avg_salary), 45000.0)
+            self.assertEqual(self.handler.retirement_age, 67)
 
     def test_collect_other_user_info(self):
         """Test other user info collection"""

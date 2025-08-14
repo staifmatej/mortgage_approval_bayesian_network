@@ -22,7 +22,7 @@ def get_all_nodes_from_model(gbn_model=None):
 def get_node_colors(nodes):
     """Dynamically define node categories and their corresponding colors based on node names."""
     node_colors = {}
-    
+
     for node in nodes:
         # Final decision (light blue) - check first
         if node == 'loan_approved':
@@ -34,14 +34,14 @@ def get_node_colors(nodes):
         elif node in ['age', 'government_employee', 'highest_education', 'employment_type', 'len_employment', 'size_of_company']:
             node_colors[node] = '#3498db'
         # Financial inputs (green)
-        elif node in ['reported_monthly_income', 'total_existing_debt', 'investments_value', 'property_owned_value', 
+        elif node in ['reported_monthly_income', 'total_existing_debt', 'investments_value', 'property_owned_value',
                       'housing_status', 'avg_salary']:
             node_colors[node] = '#2ecc71'
         # Loan parameters (orange)
         elif node in ['loan_amount', 'loan_term']:
             node_colors[node] = '#f39c12'
         # Computed variables (purple)
-        elif node in ['stability_income', 'total_stable_income_monthly', 'core_net_worth', 'monthly_payment', 'mortgage_end_age', 
+        elif node in ['stability_income', 'total_stable_income_monthly', 'core_net_worth', 'monthly_payment', 'mortgage_end_age',
                       'years_of_mortgage_after_retirement']:
             node_colors[node] = '#9b59b6'
         # Risk ratios (yellow)
@@ -50,13 +50,13 @@ def get_node_colors(nodes):
         # Default color (should not happen with current nodes)
         else:
             node_colors[node] = '#95a5a6'
-    
+
     return node_colors
 
 def create_dynamic_layout(nodes):
     """Create dynamic hierarchical layout based on actual nodes in the network."""
     pos = {}
-    
+
     # Categorize nodes dynamically
     categories = {
         'input': [],
@@ -66,25 +66,30 @@ def create_dynamic_layout(nodes):
         'ratios': [],
         'decision': []
     }
-    
-    for node in nodes:
-        if node == 'loan_approved':
-            categories['decision'].append(node)
-        elif node in ['defaulted', 'credit_history']:
-            categories['decision'].append(node)
-        elif node in ['ratio_income_debt', 'ratio_debt_net_worth', 'ratio_payment_to_income', 'ratio_income_to_avg_salary']:
-            categories['ratios'].append(node)
-        elif node in ['stability_income', 'total_stable_income_monthly', 'core_net_worth', 'monthly_payment', 'mortgage_end_age', 
-                      'years_of_mortgage_after_retirement']:
-            categories['computed'].append(node)
-        elif node in ['loan_amount', 'loan_term']:
-            categories['loan'].append(node)
-        elif node in ['reported_monthly_income', 'total_existing_debt', 'investments_value', 'property_owned_value', 
-                      'housing_status', 'avg_salary']:
-            categories['financial'].append(node)
-        else:  # Demographics & Employment
-            categories['input'].append(node)
-    
+
+    def helper(categories):
+        for node in nodes:
+            if node == 'loan_approved':
+                categories['decision'].append(node)
+            elif node in ['defaulted', 'credit_history']:
+                categories['decision'].append(node)
+            elif node in ['ratio_income_debt', 'ratio_debt_net_worth', 'ratio_payment_to_income',
+                          'ratio_income_to_avg_salary']:
+                categories['ratios'].append(node)
+            elif node in ['stability_income', 'total_stable_income_monthly', 'core_net_worth', 'monthly_payment',
+                          'mortgage_end_age',
+                          'years_of_mortgage_after_retirement']:
+                categories['computed'].append(node)
+            elif node in ['loan_amount', 'loan_term']:
+                categories['loan'].append(node)
+            elif node in ['reported_monthly_income', 'total_existing_debt', 'investments_value', 'property_owned_value',
+                          'housing_status', 'avg_salary']:
+                categories['financial'].append(node)
+            else:  # Demographics & Employment
+                categories['input'].append(node)
+
+    helper(categories)
+
     # Position nodes by category
     y_positions = {
         'input': 10,
@@ -94,7 +99,7 @@ def create_dynamic_layout(nodes):
         'ratios': 2,
         'decision': 0
     }
-    
+
     for category, nodes_in_cat in categories.items():
         if nodes_in_cat:
             x_start = -len(nodes_in_cat) * 2
@@ -105,7 +110,7 @@ def create_dynamic_layout(nodes):
                     pos[node] = (0, 0)
                 else:
                     pos[node] = (x_start + i * 4, y_positions[category])
-    
+
     return pos
 
 def calculate_edge_widths(G):
@@ -185,20 +190,20 @@ def finalize_plot(ax):
 def create_bayesian_network_visualization(gbn_model=None):
     """Create a beautiful visualization of the Bayesian Network using Seaborn with hierarchical layout."""
     setup_plot_style()
-    
+
     # Get all nodes dynamically
     all_nodes = get_all_nodes_from_model(gbn_model)
-    
+
     # Create graph and get dynamic colors
     G = create_graph_from_model(gbn_model)
     node_colors = get_node_colors(all_nodes)
-    
+
     plt.figure(figsize=(20, 13))
     ax = plt.subplot2grid((1, 10), (0, 0), colspan=7)
-    
+
     # Get positions dynamically
     pos = get_node_positions(G, all_nodes)
-    
+
     draw_network_edges(G, pos)
     draw_network_nodes(G, pos, node_colors)
     draw_network_labels(G, pos)

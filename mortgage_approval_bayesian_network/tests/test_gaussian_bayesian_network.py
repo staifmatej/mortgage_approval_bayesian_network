@@ -24,8 +24,11 @@ class TestGaussianBayesianNetwork(unittest.TestCase):
         n_samples = 100  # More samples for better matrix conditioning
 
         # Generate more realistic and varied data
+        ages = np.random.randint(25, 60, n_samples)  # Random ages between 25-60
+        loan_terms = np.random.randint(10, 25, n_samples)
         self.sample_data = pd.DataFrame({
             'government_employee': np.random.choice([0, 1], n_samples),
+            'age': ages,
             'age_young': np.zeros(n_samples),
             'age_prime': np.zeros(n_samples),
             'age_senior': np.zeros(n_samples),
@@ -41,7 +44,7 @@ class TestGaussianBayesianNetwork(unittest.TestCase):
             'housing_status': np.random.randint(0, 3, n_samples),
             'credit_history': np.random.randint(0, 4, n_samples),
             'loan_amount': np.random.randint(100000, 2000000, n_samples),
-            'loan_term': np.random.randint(10, 25, n_samples),
+            'loan_term': loan_terms,
             'stability_income': np.random.uniform(30, 90, n_samples),
             'total_stable_income_monthly': np.random.uniform(25000, 75000, n_samples),
             'ratio_income_debt': np.random.uniform(1.0, 10.0, n_samples),
@@ -51,6 +54,8 @@ class TestGaussianBayesianNetwork(unittest.TestCase):
             'ratio_income_to_avg_salary': np.random.uniform(0.7, 2.0, n_samples),
             'monthly_payment': np.random.uniform(3000, 15000, n_samples),
             'ratio_payment_to_income': np.random.uniform(0.1, 0.4, n_samples),
+            'mortgage_end_age': ages + loan_terms,
+            'years_of_mortgage_after_retirement': (ages + loan_terms) - 65,
             'defaulted': np.random.uniform(5, 50, n_samples),
             'loan_approved': np.random.uniform(0.2, 0.9, n_samples)
         })
@@ -81,14 +86,15 @@ class TestGaussianBayesianNetwork(unittest.TestCase):
 
         # Check number of nodes
         expected_nodes = [
-            'government_employee', 'age_young', 'age_prime', 'age_senior', 'age_old',
-            'highest_education', 'employment_type', 'len_employment', 'size_of_company',
-            'stability_income', 'reported_monthly_income', 'total_stable_income_monthly',
+            'government_employee', 'age', 'highest_education', 'employment_type', 
+            'len_employment', 'size_of_company', 'stability_income', 
+            'reported_monthly_income', 'total_stable_income_monthly',
             'total_existing_debt', 'ratio_income_debt', 'investments_value',
             'property_owned_value', 'core_net_worth', 'ratio_debt_net_worth',
             'avg_salary', 'ratio_income_to_avg_salary', 'housing_status',
             'credit_history', 'defaulted', 'loan_amount', 'loan_term',
-            'monthly_payment', 'ratio_payment_to_income', 'loan_approved'
+            'monthly_payment', 'ratio_payment_to_income', 'mortgage_end_age',
+            'years_of_mortgage_after_retirement', 'loan_approved'
         ]
 
         model_nodes = list(gbn.loan_approval_model.nodes())
@@ -110,7 +116,7 @@ class TestGaussianBayesianNetwork(unittest.TestCase):
 
         # Test edges to stability_income
         self.assertIn(('government_employee', 'stability_income'), edges)
-        self.assertIn(('age_young', 'stability_income'), edges)
+        self.assertIn(('age', 'stability_income'), edges)
         self.assertIn(('highest_education', 'stability_income'), edges)
 
         # Test edges to loan_approved

@@ -386,7 +386,7 @@ class DataGenerator:
 
         df["loan_approved"] -= df["ratio_payment_to_income"]*2
         df["loan_approved"] -= df["ratio_debt_net_worth"]
-        
+
         # Strong penalty for mortgages extending past retirement
         # Each year past retirement significantly reduces approval probability
         df["loan_approved"] -= np.maximum(0, df["years_of_mortgage_after_retirement"]) * 0.3
@@ -1031,7 +1031,7 @@ class DataGenerator:
                 return round(total_stable_income_monthly / self.avg_salary, 5)
 
             ratio_income_to_avg_salary = generate_ratio_income_to_avg_salary()
-            
+
             # Calculate mortgage end age and years after retirement
             mortgage_end_age = age + loan_term
             years_of_mortgage_after_retirement = mortgage_end_age - self.retirement_age
