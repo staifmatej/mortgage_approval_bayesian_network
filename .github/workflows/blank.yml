@@ -31,7 +31,7 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     
     - name: Run pylint
-      working-directory: ./linear-least-squares-methods
+      working-directory: ./mortgage_approval_bayesian_network
       run: pylint . --disable=C0301,C0103
     
     - name: Run pytest
