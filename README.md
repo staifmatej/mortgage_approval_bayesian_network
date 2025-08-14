@@ -66,6 +66,8 @@ For a more detailed description of the methodology, results, and analysis, pleas
 - **ratio_debt_net_worth**: Numeric - Debt to net worth ratio
 - **ratio_payment_to_income**: Numeric - Monthly payment to income ratio
 - **ratio_income_to_avg_salary**: Numeric - Income compared to regional average
+- **defaulted**: Numeric (0-1) - Probability of loan default
+- **loan_approved**: Numeric (0-1) - Final loan approval probability
 
 
 ## Installation & Usage
