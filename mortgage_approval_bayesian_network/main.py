@@ -207,6 +207,7 @@ class InputHandler():
             employment_type = "unemployed"
             len_employment = 0
             size_of_company = 0
+
         else:
             employment_type = self.validate_input_alpha(
                 "Employment type (unemployed/temporary/freelancer/permanent): ",
