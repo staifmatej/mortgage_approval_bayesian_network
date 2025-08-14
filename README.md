@@ -1,1 +1,1 @@
-Linear Gaussian Bayesian Network
+# Linear Gaussian Bayesian Network
