@@ -39,7 +39,7 @@ For a more detailed description of the methodology, results, and analysis, pleas
 ## Diagram of the Linear Gaussian Bayesian Network
 
 
-![Diagram of the Linear Gaussian Bayesian Network](mortgage_approval_bayesian_network/diagram_photos/bayesian_network_readme.png)
+![Diagram of the Linear Gaussian Bayesian Network](mortgage_approval_bayesian_network/diagram_photos/bayesian_network_readme.jpg)
 
 - **government_employee**: Binary (Yes/No) - Whether the applicant works in government/public sector (teachers, firefighters, civil servants). In Czech context, these positions typically offer more stable income.
 - **age**: Numeric (18-65) - Applicant's age in years
