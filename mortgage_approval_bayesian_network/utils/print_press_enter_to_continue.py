@@ -2,8 +2,6 @@
 import sys
 import select
 import tty
-import termios
-
 
 def print_press_enter_to_continue():
     """Display animated 'Press Enter to continue' prompt with dot animation."""
@@ -17,6 +15,7 @@ def print_press_enter_to_continue():
     except NameError:
         pass  # Not in IPython/Jupyter
     try:
+        import termios  # pylint: disable=import-outside-toplevel
         # Save terminal settings
         old_settings = termios.tcgetattr(sys.stdin)
         tty.setraw(sys.stdin.fileno())
@@ -42,5 +41,4 @@ def print_press_enter_to_continue():
         print("\rPress Enter to continue...    ")
 
     except (ImportError, OSError, RuntimeError):
-        # Fallback for systems without select/termios
         input("\nPress Enter to continue...")
