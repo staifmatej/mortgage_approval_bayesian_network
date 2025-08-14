@@ -25,15 +25,18 @@ def encode_age_group(age):
 
 class DataGenerator:
     """Generates synthetic mortgage application data with realistic financial distributions and relationships."""
-    def __init__(self, avg_salary, interest_rate, num_records):
+    def __init__(self, avg_salary, interest_rate, num_records, retirement_age=65):
         self.avg_salary = avg_salary
         self.interest_rate = interest_rate
         self.num_records = num_records
+        self.retirement_age = retirement_age
         self.csv_path = "datasets/mortgage_applications.csv"
         self.epsilon = 1e-8
         max_num_records = 1e15
         warning_num_records = 1e7
 
+        if self.retirement_age < 18 or self.retirement_age > 100:
+            print_error_handling("Retirement_age must be between 18 and 100.")
         if self.num_records < 100:
             print_error_handling("Number of records should be at least 100.")
         if self.interest_rate > 0.27:
@@ -57,6 +60,7 @@ class DataGenerator:
         self.seed_random()
         with open(self.csv_path, mode="w", newline="", encoding="utf-8") as file:
             csv.writer(file).writerow(["id",
+                                       "age",
                                        "avg_salary",
                                        "government_employee",
                                        "highest_education",
@@ -82,6 +86,8 @@ class DataGenerator:
                                        "ratio_payment_to_income",
                                        "age_young", "age_prime", "age_senior", "age_old",
                                        "ratio_income_to_avg_salary",
+                                       "mortgage_end_age",
+                                       "years_of_mortgage_after_retirement",
                                        "defaulted",
                                        "loan_approved"])
 
@@ -380,6 +386,10 @@ class DataGenerator:
 
         df["loan_approved"] -= df["ratio_payment_to_income"]*2
         df["loan_approved"] -= df["ratio_debt_net_worth"]
+        
+        # Strong penalty for mortgages extending past retirement
+        # Each year past retirement significantly reduces approval probability
+        df["loan_approved"] -= np.maximum(0, df["years_of_mortgage_after_retirement"]) * 0.3
 
         # Convert to probability using sigmoid function
         # This maps values from (-inf, inf) to (0, 1)
@@ -1021,9 +1031,14 @@ class DataGenerator:
                 return round(total_stable_income_monthly / self.avg_salary, 5)
 
             ratio_income_to_avg_salary = generate_ratio_income_to_avg_salary()
+            
+            # Calculate mortgage end age and years after retirement
+            mortgage_end_age = age + loan_term
+            years_of_mortgage_after_retirement = mortgage_end_age - self.retirement_age
 
             writer.writerow([
                 record_id,
+                age,
                 avg_salary,
                 government_employee,
                 highest_education,
@@ -1049,6 +1064,8 @@ class DataGenerator:
                 ratio_payment_to_income,
                 age_young, age_prime, age_senior, age_old,
                 ratio_income_to_avg_salary,
+                mortgage_end_age,
+                years_of_mortgage_after_retirement,
                 defaulted,
                 loan_approved
             ])
@@ -1057,7 +1074,7 @@ class DataGenerator:
 
 
 if __name__ == "__main__":
-    dataCreate = DataGenerator(1, 0.05, int(1e5))
+    dataCreate = DataGenerator(1, 0.05, int(1e5), 65)
     dataCreate.generate_realistic_data(True)
     dataCreate.remove_wrong_rows(True, None)
     dataCreate.analyze_distribution()

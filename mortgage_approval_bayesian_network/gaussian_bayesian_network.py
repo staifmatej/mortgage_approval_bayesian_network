@@ -23,14 +23,16 @@ class GaussianBayesianNetwork():
         self.loan_approval_model = (LinearGaussianBayesianNetwork(
             [
             ("government_employee", "stability_income"),
-            ("age_young", "stability_income"),
-            ("age_prime", "stability_income"),
-            ("age_senior", "stability_income"),
-            ("age_old", "stability_income"),
+            ("age", "stability_income"),
             ("len_employment", "stability_income"),
             ("size_of_company", "stability_income"),
             ("highest_education", "stability_income"),
             ("employment_type", "stability_income"),
+
+            ("age", "mortgage_end_age"),
+            ("loan_term", "mortgage_end_age"),
+
+            ("mortgage_end_age", "years_of_mortgage_after_retirement"),
 
             ("reported_monthly_income","total_stable_income_monthly"),
             ("stability_income", "total_stable_income_monthly"),
@@ -63,7 +65,8 @@ class GaussianBayesianNetwork():
             ("ratio_payment_to_income", "loan_approved"),
             ("ratio_debt_net_worth", "loan_approved"),
             ("credit_history", "loan_approved"),
-            ("defaulted", "loan_approved")
+            ("defaulted", "loan_approved"),
+            ("years_of_mortgage_after_retirement", "loan_approved"),
             ]))
 
 

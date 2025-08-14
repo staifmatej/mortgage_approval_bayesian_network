@@ -1,5 +1,6 @@
 """Main module for mortgage approval prediction system with user interaction interface."""
 import os
+import sys
 import warnings
 import traceback
 import pandas as pd
@@ -16,8 +17,6 @@ from utils.print_press_enter_to_continue import print_press_enter_to_continue
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 
 TRILLION = int(1e12)
-BILLION = int(1e9)
-MILLION = int(1e6)
 
 class InputHandler():
     """Handles user input collection and mortgage approval prediction workflow."""
@@ -28,6 +27,7 @@ class InputHandler():
         self.avg_salary = 35000     # Average salary in Czechia in 2025.
         self.interest_rate = 0.045  # 4.5% p.a.
         self.data_num_records = 1e4 # Perfect balance between speed and data amount.
+        self.retirement_age = 65
 
     def validate_input_alpha(self, prompt, valid_options, max_attempts=3, error_msg=None):
         """Validate alphabetic user input against list of valid options with retry mechanism."""
@@ -137,7 +137,7 @@ class InputHandler():
 
     def collect_main_user_info(self):
         """Collect main financial parameters from user for mortgage calculations."""
-        print(f"\n{S_CYAN} ══════ Welcome to the BayesianHill Bank & Co. - Mortgage Approval System ══════ {E_CYAN}")
+        print(f"\n{S_CYAN} ══════ Welcome to the BayesianHill & Co. Bank - Mortgage Approval System ══════ {E_CYAN}")
 
         self.interest_rate = self.validate_input_numerical("\nEnter the interest rate at which we will lend the mortgage (from 0 to 0.27; default 0.05): ", min_val=0, max_val=0.27, default_val=0.05, max_attempts=3, data_type=float)
         print(f"{S_CYAN}Note{E_CYAN}: At Bayesianhill Bank, we always provide a fixed interest rate for the entire duration of mortgage.")
@@ -145,6 +145,7 @@ class InputHandler():
         self.avg_salary = self.validate_input_numerical("\nEnter the average net salary in the Czechia (default 40000 CZK): ", min_val=1, max_val=TRILLION, default_val=40000, max_attempts=3, data_type=float)
         print(f"{S_CYAN}Note{E_CYAN}: Unless stated otherwise, the salary is assumed to be in Czech crowns.")
 
+        self.retirement_age = self.validate_input_numerical( "\nEnter the age at which mortgage applicant will retire (default: 65 years old) ", min_val=18, max_val=100, default_val=65, max_attempts=3, data_type=int)
 
     def collect_other_user_info(self):
         """Collect detailed applicant information including demographics and financial status."""
@@ -169,7 +170,6 @@ class InputHandler():
         min_master_age = min_bachelor_age + 1
         min_phd_age = min_master_age + 2
 
-        # Validate education with age constraints (up to 3 attempts)
         education_age_map = {
             "phd": (min_phd_age, "PhD"),
             "master": (min_master_age, "master's"),
@@ -191,12 +191,12 @@ class InputHandler():
                         print_invalid_input(f"You cannot have a {degree_name} degree before age {min_age}! [{attempt+1}/3]")
                     else:
                         print_error_handling(f"You cannot have a {degree_name} degree before age {min_age}!")
-                        highest_education = "basic"  # Default to basic education
+                        highest_education = "basic"
                         break
                 else:
-                    break  # Valid education for age
+                    break
             else:
-                break  # Basic education - no age restriction
+                break
 
         study_status = self.validate_input_alpha(
             "Is mortgage applicant student? (yes/no): ",
@@ -237,7 +237,7 @@ class InputHandler():
                 size_of_company = self.validate_input_numerical(
                     "Number of company employees, where applicant works: ",
                     min_val=0,
-                    max_val=MILLION,
+                    max_val=TRILLION/1000,
                     data_type=int
                 )
             else:
@@ -414,20 +414,19 @@ class InputHandler():
         print("\n══════ Options ══════")
         print("1. Generate new dataset")
         print("2. Process new mortgage applicant")
-        print("3. Change interest rate and average salary")
-        print("4. Full reset (new salary, rate & dataset)")
-        print("5. Restart entire program")
-        print("6. Exit program")
-        print("═════════════════════")
+        print("3. Full reset (new salary, rate & dataset)")
+        print("4. Restart entire program")
+        print("5. Exit program")
+        print("═════════════════════\n")
 
-        for i in range(4):
-            if i == 4:
-                print_error_handling("Too many invalid choices.")
+        for i in range(5):
             try:
-                choice = int(input("\nChoose option (1-6): "))
-                if 1 <= choice <= 6:
+                choice = int(input("Choose option (1-5): "))
+                if 1 <= choice <= 5:
                     return choice
-                print_invalid_input(f"Please enter number between 1-6. [{i}/3]")
+                if i == 3:
+                    print_error_handling("Too many invalid choices.")
+                print_invalid_input(f"Please enter number between 1-5. [{i}/3]")
             except ValueError:
                 print_invalid_input(f"Please enter a valid number. [{i}/3]")
 
@@ -441,7 +440,7 @@ class InputHandler():
         else:
             approval_prob = self.predict_loan_approval(model_gbn, mortgage_applicant_data, loan_amount, loan_term)
 
-        if approval_prob > 0.6:
+        if approval_prob > 0.65:
             print(f"\nMortgage approval probability: {S_GREEN}{approval_prob:.1%}{E_GREEN}")
         elif approval_prob < 0.4:
             print(f"\nMortgage approval probability: {S_RED}{approval_prob:.1%}{E_RED}")
@@ -451,16 +450,81 @@ class InputHandler():
     def main(self):
         """Main program loop handling menu navigation and user interactions."""
         # handle first-ever program running.
-        self.set_up_all()
+        applicant_data = self.set_up_all()
+        model_gbn = None
         print_press_enter_to_continue()
 
         # handle other program runs.
-        while 1:
+        while True:
             option = self.options()
-            if option == 4:
-                self.set_up_all()
-            elif option == 1:
+
+            if option == 1: # Generate new dataset only
                 self.set_up_only_dataset()
+                model_gbn = self.train_and_validate_gbn()
+                # Use existing applicant data with new model
+                loan_amount = self.validate_input_numerical(
+                    "\nEnter loan amount (CZK): ",
+                    min_val=100000,
+                    max_val=TRILLION,
+                    data_type=int
+                )
+                loan_term = self.validate_input_numerical(
+                    "Enter loan term (years): ",
+                    min_val=1,
+                    max_val=35,
+                    data_type=int
+                )
+                self.print_mortgage_applicant_info(applicant_data, loan_amount, loan_term)
+                self.print_mortgage_approval_prob(applicant_data, model_gbn, loan_amount, loan_term)
+
+            elif option == 2: # Process new mortgage applicant
+                applicant_data = self.collect_other_user_info()
+                # Use existing model if available, otherwise train new one
+                if model_gbn is None:
+                    model_gbn = self.train_and_validate_gbn()
+                loan_amount = self.validate_input_numerical(
+                    "\nEnter loan amount (CZK): ",
+                    min_val=100000,
+                    max_val=TRILLION,
+                    data_type=int
+                )
+                loan_term = self.validate_input_numerical(
+                    "Enter loan term (years): ",
+                    min_val=1,
+                    max_val=35,
+                    data_type=int
+                )
+                self.print_mortgage_applicant_info(applicant_data, loan_amount, loan_term)
+                self.print_mortgage_approval_prob(applicant_data, model_gbn, loan_amount, loan_term)
+
+            elif option == 3: # Full reset (new salary, rate & dataset)
+                self.collect_main_user_info()
+                self.collect_datasets_user_info()
+                self.generate_csv_dataset()
+                model_gbn = self.train_and_validate_gbn()
+                # Use existing applicant data
+                loan_amount = self.validate_input_numerical(
+                    "\nEnter loan amount (CZK): ",
+                    min_val=100000,
+                    max_val=TRILLION,
+                    data_type=int
+                )
+                loan_term = self.validate_input_numerical(
+                    "Enter loan term (years): ",
+                    min_val=1,
+                    max_val=35,
+                    data_type=int
+                )
+                self.print_mortgage_applicant_info(applicant_data, loan_amount, loan_term)
+                self.print_mortgage_approval_prob(applicant_data, model_gbn, loan_amount, loan_term)
+
+            elif option == 4: # Restart entire program
+                applicant_data = self.set_up_all()
+                model_gbn = None
+
+            elif option == 5:
+                print(f"\n{S_CYAN}Thank you for using BayesianHill & Co. Bank Mortgage Software, Goodbye!{E_CYAN}\n")
+                sys.exit(0)
 
             print_press_enter_to_continue()
 
@@ -495,6 +559,7 @@ class InputHandler():
 
         self.print_mortgage_applicant_info(mortgage_applicant_data, loan_amount, loan_term)
         self.print_mortgage_approval_prob(mortgage_applicant_data, model_gbn, loan_amount, loan_term)
+        return mortgage_applicant_data
 
 if __name__ == "__main__":
     handler = InputHandler()
