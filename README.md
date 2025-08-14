@@ -41,6 +41,7 @@ For a more detailed description of the methodology, results, and analysis, pleas
 
 ![Diagram of the Linear Gaussian Bayesian Network](mortgage_approval_bayesian_network/diagram_photos/bayesian_network_readme.jpg)
 
+**Input Variables:**
 - **government_employee**: Binary (Yes/No) - Whether the applicant works in government/public sector (teachers, firefighters, civil servants). In Czech context, these positions typically offer more stable income.
 - **age**: Numeric (18-65) - Applicant's age in years
 - **len_employment**: Numeric - Length of current employment in years
@@ -60,6 +61,8 @@ For a more detailed description of the methodology, results, and analysis, pleas
 - **mortgage_end_age**: Numeric - Age when mortgage would be fully paid (age + loan_term)
 - **years_of_mortgage_after_retirement**: Numeric - Years of mortgage payments after retirement age (65)
 - **total_stable_income_monthly**: Numeric - Adjusted monthly income considering stability factors
+  
+**Computed & Output Variables:**
 - **core_net_worth**: Numeric - Total net worth from  properties and investments
 - **monthly_payment**: Numeric - Calculated monthly mortgage payment
 - **ratio_income_debt**: Numeric - Debt to income ratio
