@@ -1,1 +1,1 @@
-# loan_approval_gaussian_bayesian_network
+# Linear Gaussian Bayesian Network
