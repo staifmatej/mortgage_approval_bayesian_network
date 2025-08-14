@@ -72,6 +72,8 @@ For a more detailed description of the methodology, results, and analysis, pleas
 - **defaulted**: Numeric (0-1) - Probability of how risky the applicant is
 - **loan_approved**: Numeric (0-1) - Final loan approval probability
 
+More detailed information is provided in the report [staifmatej-report.pdf](staifmatej-report.pdf) in this repository.
+
 
 ## Installation & Usage
 
