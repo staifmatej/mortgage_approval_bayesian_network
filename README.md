@@ -38,6 +38,7 @@ For a more detailed description of the methodology, results, and analysis, pleas
 
 ## Diagram of the Linear Gaussian Bayesian Network
 
+
 ![Diagram of the Linear Gaussian Bayesian Network](mortgage_approval_bayesian_network/diagram_photos/bayesian_network_readme.png)
 
 - **government_employee**: Binary (Yes/No) - Whether the applicant works in government/public sector (teachers, firefighters, civil servants). In Czech context, these positions typically offer more stable income.
