@@ -56,7 +56,16 @@ For a more detailed description of the methodology, results, and analysis, pleas
 - **loan_amount**: Numeric - Requested loan amount in CZK
 - **loan_term**: Numeric - Requested loan duration in years
 - **avg_salary**: Numeric - Average salary in the region/sector (default 40,000 CZK)
-
+- **stability_income**: Numeric (0-1) - Computed metric indicating income stability based on employment factors
+- **mortgage_end_age**: Numeric - Age when mortgage would be fully paid (age + loan_term)
+- **years_of_mortgage_after_retirement**: Numeric - Years of mortgage payments after retirement age (65)
+- **total_stable_income_monthly**: Numeric - Adjusted monthly income considering stability factors
+- **core_net_worth**: Numeric - Total net worth from  properties and investments
+- **monthly_payment**: Numeric - Calculated monthly mortgage payment
+- **ratio_income_debt**: Numeric - Debt to income ratio
+- **ratio_debt_net_worth**: Numeric - Debt to net worth ratio
+- **ratio_payment_to_income**: Numeric - Monthly payment to income ratio
+- **ratio_income_to_avg_salary**: Numeric - Income compared to regional average
 
 
 ## Installation & Usage
