@@ -2,6 +2,9 @@
 .claude
 CLAUDE.md
 
+datasets/mortgage_applications.csv
+datasets/*
+
 # Python cache
 __pycache__/
 *.py[cod]
