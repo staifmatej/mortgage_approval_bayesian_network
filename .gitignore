@@ -2,8 +2,6 @@
 .claude
 CLAUDE.md
 
-mortgage_approval_bayesian_network/datasets/mortgage_applications.csv
-mortgage_approval_bayesian_network/datasets/*
 
 # Python cache
 __pycache__/
