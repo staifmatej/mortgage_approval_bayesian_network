@@ -1074,7 +1074,7 @@ class DataGenerator:
 
 
 if __name__ == "__main__":
-    dataCreate = DataGenerator(1, 0.05, int(1e3), 65)
+    dataCreate = DataGenerator(1, 0.05, int(1e2), 65)
     dataCreate.generate_realistic_data(True)
     dataCreate.remove_wrong_rows(True, None)
     dataCreate.analyze_distribution()
