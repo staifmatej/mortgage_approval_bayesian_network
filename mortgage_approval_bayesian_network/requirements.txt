@@ -15,4 +15,3 @@ tqdm==4.66.1
 # Development dependencies
 pytest==8.3.4
 pylint==3.2.5
-unittest-mock==1.5
