@@ -41,37 +41,13 @@ For a more detailed description of the methodology, results, and analysis, pleas
 
 ![Diagram of the Linear Gaussian Bayesian Network](mortgage_approval_bayesian_network/diagram_photos/bayesian_network_readme.jpg)
 
-**Input Variables:**
-- **government_employee**: Binary (Yes/No) - Whether the applicant works in government/public sector (teachers, firefighters, civil servants). In Czech context, these positions typically offer more stable income.
-- **age**: Numeric (18-65) - Applicant's age in years
-- **len_employment**: Numeric - Length of current employment in years
-- **size_of_company**: Numeric - Company size (number of employees). Larger corporations are considered more stable than startups.
-- **highest_education**: Categorical - Highest education level achieved (High School/Bachelor/Master/PhD)
-- **employment_type**: Categorical - Employment status (Permanent/Freelancer/Unemployed/Temporary)
-- **reported_monthly_income**: Numeric - Applicant's declared monthly income in CZK
-- **total_existing_debt**: Numeric - Total current debt obligations in CZK
-- **investments_value**: Numeric - Total value of investments in CZK
-- **property_owned_value**: Numeric - Total value of owned properties in CZK
-- **housing_status**: Categorical - Current housing situation (Own/Rent/With Parents)
-- **credit_history**: Categorical - Credit score/history (Excellent/Good/Fair/Poor)
-- **loan_amount**: Numeric - Requested loan amount in CZK
-- **loan_term**: Numeric - Requested loan duration in years
-- **avg_salary**: Numeric - Average salary in the region/sector (default 40,000 CZK)
-- **stability_income**: Numeric (0-1) - Computed metric indicating income stability based on employment factors
-- **mortgage_end_age**: Numeric - Age when mortgage would be fully paid (age + loan_term)
-- **years_of_mortgage_after_retirement**: Numeric - Years of mortgage payments after retirement age (65)
-- **total_stable_income_monthly**: Numeric - Adjusted monthly income considering stability factors
-  
-**Computed & Output Variables:**
-- **core_net_worth**: Numeric - Total net worth from  properties and investments
-- **monthly_payment**: Numeric - Calculated monthly mortgage payment
-- **ratio_income_debt**: Numeric - Debt to income ratio
-- **ratio_debt_net_worth**: Numeric - Debt to net worth ratio
-- **ratio_payment_to_income**: Numeric - Monthly payment to income ratio
-- **ratio_income_to_avg_salary**: Numeric - Income compared to regional average
-- **defaulted**: Numeric (0-1) - Probability of how risky the applicant is
-- **loan_approved**: Numeric (0-1) - Final loan approval probability
+-	`Blue nodes` contain data about the mortgage applicant’s age, highest education achieved, employment status and company size (number of employees), length of current employment, and type of employment (permanent, temporary, freelancer, or unemployed).
+-	`Purple nodes` always contain numeric values and are derived from other nodes. This category includes metrics such as income stability, which is calculated from the blue nodes and ranges from 0 to 1 — higher values indicate a more stable income for the applicant. Additionally, they include the mortgage payoff date and payment amount. The total sum of numeric asset values is also represented, and in the bottom-left corner, there is a node indicating whether the mortgage is expected to be paid after retirement.
+-	`Orange nodes` contain the mortgage parameters directly, specifically the repayment period in years (from 1 to 35) and the amount the person wants to borrow.
+-	`Green nodes` contain the applicant’s financial information, including net monthly income, investment amount (if any), property value (if owned), outstanding debt, average salary, and housing status (rent, own, mortgage, homeless).
+-	
 
+  
 More detailed information is provided in the report [staifmatej-report.pdf](staifmatej-report.pdf) in this repository.
 
 
