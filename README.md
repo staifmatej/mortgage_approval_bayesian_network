@@ -43,34 +43,34 @@ For a more detailed description of the methodology, results, and analysis, pleas
 
 ## Node Descriptions
 
-| Node                        | Description                                                |
-|-----------------------------|------------------------------------------------------------|
-| age                         | applicant’s age                                            |
-| highest education           | education level                                            |
-| employment type             | permanent, temporary, freelancer, unemployed               |
-| government employee         | yes/no flag                                                |
-| len employment              | length of current job                                      |
-| size company                | company size (# employees)                                 |
-| loan term                   | repayment period (1–35 years)                              |
-| loan amount                 | requested mortgage amount                                  |
-| monthly payment             | calculated monthly installment                            |
-| mortgage end age            | applicant’s age at mortgage payoff                         |
-| years of mortgage retirement| repayment continuing after retirement                      |
-| stability income            | stability metric of income (0–1)                           |
-| reported monthly income     | applicant’s declared monthly income                        |
-| avg salary                  | average salary in country                                  |
-| total stable monthly income | adjusted stable income                                     |
-| total existing debt         | applicant’s outstanding debts                              |
-| property value              | owned property value                                       |
-| investments value           | total investments (if any)                                 |
-| core worth                  | net worth (assets − debts)                                 |
-| ratio income by avg salary  | income compared to average                                 |
-| ratio debt to net worth     | financial leverage indicator                               |
-| ratio payment to income     | mortgage burden on income                                  |
-| ratio income to debt        | ability to cover debts with income                         |
-| credit history              | credit score category (bad, fair, good, excellent)         |
-| defaulted                   | default risk, derived from many factors                    |
-| loan approved               | final decision probability (0–1)                           |
+| Color Category | Node                        | Description                                                |
+|---------------|--------------|------------------------------------------------------------|
+|🟦 Employment/Demographics | age                         | applicant’s age                                            |
+| | highest education           | education level                                            |
+| | employment type             | permanent, temporary, freelancer, unemployed               |
+| | government employee         | yes/no flag                                                |
+| |len employment              | length of current job                                      |
+| | size company                | company size (# employees)                                 |
+| | loan term                   | repayment period (1–35 years)                              |
+| | loan amount                 | requested mortgage amount                                  |
+|🟪 Computed Variables | monthly payment             | calculated monthly installment                             |
+| | mortgage end age            | applicant’s age at mortgage payoff                         |
+| | years of mortgage retirement| repayment continuing after retirement                      |
+| | stability income            | stability metric of income (0–1)                           |
+| 🟩 Financial Inputs|reported monthly income     | applicant’s declared monthly income                        |
+| | avg salary                  | average salary in country                                  |
+| 🟥 Risk Ratios| total stable monthly income | adjusted stable income                                     |
+| | total existing debt         | applicant’s outstanding debts                              |
+| | property value              | owned property value                                       |
+| | investments value           | total investments (if any)                                 |
+| | core worth                  | net worth (assets − debts)                                 |
+| | ratio income by avg salary  | income compared to average                                 |
+| 🟧 Loan Parameters | ratio debt to net worth     | financial leverage indicator                               |
+| | ratio payment to income     | mortgage burden on income                                  |
+| | ratio income to debt        | ability to cover debts with income                         |
+| | credit history              | credit score category (bad, fair, good, excellent)         |
+| | defaulted                   | default risk, derived from many factors                    |
+| Final Decision | loan approved               | final decision probability (0–1)                           |
 
   
 More detailed information is provided in the report [staifmatej-report.pdf](staifmatej-report.pdf) in this repository.
