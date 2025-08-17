@@ -41,37 +41,11 @@ For a more detailed description of the methodology, results, and analysis, pleas
 
 ![Diagram of the Linear Gaussian Bayesian Network](mortgage_approval_bayesian_network/diagram_photos/bayesian_network_readme.jpg)
 
-## Node Descriptions
-
-| Color Category | Node                        | Description                                                |
-|---------------|--------------|------------------------------------------------------------|
-|🟦 Employment/Demographics | age                         | applicant’s age                                            |
-| | highest education           | education level                                            |
-| | employment type             | permanent, temporary, freelancer, unemployed               |
-| | government employee         | yes/no flag                                                |
-| |len employment              | length of current job                                      |
-| | size company                | company size (# employees)                                 |
-| | loan term                   | repayment period (1–35 years)                              |
-| | loan amount                 | requested mortgage amount                                  |
-|🟪 Computed Variables | monthly payment             | calculated monthly installment                             |
-| | mortgage end age            | applicant’s age at mortgage payoff                         |
-| | years of mortgage retirement| repayment continuing after retirement                      |
-| | stability income            | stability metric of income (0–1)                           |
-| 🟩 Financial Inputs|reported monthly income     | applicant’s declared monthly income                        |
-| | avg salary                  | average salary in country                                  |
-| 🟥 Risk Ratios| total stable monthly income | adjusted stable income                                     |
-| | total existing debt         | applicant’s outstanding debts                              |
-| | property value              | owned property value                                       |
-| | investments value           | total investments (if any)                                 |
-| | core worth                  | net worth (assets − debts)                                 |
-| | ratio income by avg salary  | income compared to average                                 |
-| 🟧 Loan Parameters | ratio debt to net worth     | financial leverage indicator                               |
-| | ratio payment to income     | mortgage burden on income                                  |
-| | ratio income to debt        | ability to cover debts with income                         |
-| | credit history              | credit score category (bad, fair, good, excellent)         |
-| | defaulted                   | default risk, derived from many factors                    |
-| Final Decision | loan approved               | final decision probability (0–1)                           |
-
+- `🟦 Employment & Demographics` - Basic applicant information including age, highest education level, employment type (permanent, temporary, freelancer, unemployed), government employee status, length of employment, company size, and fundamental loan parameters such as loan term (1–35 years) and requested loan amount.
+- `🟩 Financial Inputs` - Core financial data provided by the applicant, specifically their reported monthly income and the average salary benchmark in the country, which serve as the foundation for all financial calculations and comparisons.
+- `🟪 Computed Variables` - Derived metrics calculated from input data including monthly payment amount, mortgage end age, years of mortgage continuing after retirement, and income stability score (0–1), which provide deeper insights into the loan's long-term implications.
+- `🟨 Risk Assessment` - Comprehensive risk evaluation through various financial ratios and indicators: total stable monthly income, existing debt obligations, property and investment values, net worth calculations, income-to-average-salary ratios, debt-to-net-worth ratios, payment-to-income ratios, income-to-debt coverage ratios, credit history categories (bad, fair, good, excellent), and overall default risk assessment.
+- **Final Decision**: The ultimate loan approval decision represented as a probability score (0–1), which synthesizes all input variables, computed metrics, and risk assessments to determine the likelihood of mortgage approval.
   
 More detailed information is provided in the report [staifmatej-report.pdf](staifmatej-report.pdf) in this repository.
 
