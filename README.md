@@ -41,11 +41,36 @@ For a more detailed description of the methodology, results, and analysis, pleas
 
 ![Diagram of the Linear Gaussian Bayesian Network](mortgage_approval_bayesian_network/diagram_photos/bayesian_network_readme.jpg)
 
--	`Blue nodes` contain data about the mortgage applicant’s age, highest education achieved, employment status and company size (number of employees), length of current employment, and type of employment (permanent, temporary, freelancer, or unemployed).
--	`Purple nodes` always contain numeric values and are derived from other nodes. This category includes metrics such as income stability, which is calculated from the blue nodes and ranges from 0 to 1 — higher values indicate a more stable income for the applicant. Additionally, they include the mortgage payoff date and payment amount. The total sum of numeric asset values is also represented, and in the bottom-left corner, there is a node indicating whether the mortgage is expected to be paid after retirement.
--	`Orange nodes` contain the mortgage parameters directly, specifically the repayment period in years (from 1 to 35) and the amount the person wants to borrow.
--	`Green nodes` contain the applicant’s financial information, including net monthly income, investment amount (if any), property value (if owned), outstanding debt, average salary, and housing status (rent, own, mortgage, homeless).
--	
+## Node Descriptions
+
+| Node                        | Description                                                |
+|-----------------------------|------------------------------------------------------------|
+| age                         | applicant’s age                                            |
+| highest education           | education level                                            |
+| employment type             | permanent, temporary, freelancer, unemployed               |
+| government employee         | yes/no flag                                                |
+| len employment              | length of current job                                      |
+| size company                | company size (# employees)                                 |
+| loan term                   | repayment period (1–35 years)                              |
+| loan amount                 | requested mortgage amount                                  |
+| monthly payment             | calculated monthly installment                            |
+| mortgage end age            | applicant’s age at mortgage payoff                         |
+| years of mortgage retirement| repayment continuing after retirement                      |
+| stability income            | stability metric of income (0–1)                           |
+| reported monthly income     | applicant’s declared monthly income                        |
+| avg salary                  | average salary in country                                  |
+| total stable monthly income | adjusted stable income                                     |
+| total existing debt         | applicant’s outstanding debts                              |
+| property value              | owned property value                                       |
+| investments value           | total investments (if any)                                 |
+| core worth                  | net worth (assets − debts)                                 |
+| ratio income by avg salary  | income compared to average                                 |
+| ratio debt to net worth     | financial leverage indicator                               |
+| ratio payment to income     | mortgage burden on income                                  |
+| ratio income to debt        | ability to cover debts with income                         |
+| credit history              | credit score category (bad, fair, good, excellent)         |
+| defaulted                   | default risk, derived from many factors                    |
+| loan approved               | final decision probability (0–1)                           |
 
   
 More detailed information is provided in the report [staifmatej-report.pdf](staifmatej-report.pdf) in this repository.
