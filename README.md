@@ -4,33 +4,7 @@
 
 ## Abstract
 
-This project implements and compares three different
-  computational approaches for
-  regression models: **Pure Python** (using only for-loops),
-  **NumPy** (vectorized operations), and **Numba**
-  (JIT-compiled Python). Each engine implements four regression models: **Linear Regression** and 
-**Ridge Regression** are implemented from scratch using only basic 
-mathematical operations, while **Lasso Regression** and **Elastic Net 
-Regression** wrap sklearn implementations to provide consistent interface 
-and enable performance comparison across all methods.
-
-  This project extends beyond the scope of the **Linear 
-  Algebra II** course at **CTU FIT**, where the least
-  squares method was introduced theoretically. As an
-  extension of the coursework, I explored practical
-  implementation without relying on high-level machine
-  learning libraries, demonstrating the mathematical
-  foundations learned in class through code.
-
-  The project provides **performance benchmarking** to
-  demonstrate the computational advantages of different
-  implementation strategies, particularly showcasing
-  Numba's JIT compilation performance gains over pure
-  Python implementations. Additionally, the program offers
-  **curve fitting capabilities** for **sixteen pre-selected
-   functions**, allowing users to fit various mathematical
-  models to their datasets through an interactive menu
-  system.
+TODO
 
 ## Detailed Report
 
@@ -38,14 +12,15 @@ For a more detailed description of the methodology, results, and analysis, pleas
 
 ## Diagram of the Linear Gaussian Bayesian Network
 
-
 ![Diagram of the Linear Gaussian Bayesian Network](mortgage_approval_bayesian_network/diagram_photos/bayesian_network_readme.jpg)
 
-- `🟦 Employment & Demographics` - Basic applicant information including age, highest education level, employment type (permanent, temporary, freelancer, unemployed), government employee status, length of employment, company size, and fundamental loan parameters such as loan term (1–35 years) and requested loan amount.
-- `🟩 Financial Inputs` - Core financial data provided by the applicant, specifically their reported monthly income and the average salary benchmark in the country, which serve as the foundation for all financial calculations and comparisons.
-- `🟪 Computed Variables` - Derived metrics calculated from input data including monthly payment amount, mortgage end age, years of mortgage continuing after retirement, and income stability score (0–1), which provide deeper insights into the loan's long-term implications.
-- `🟨 Risk Assessment` - Comprehensive risk evaluation through various financial ratios and indicators: total stable monthly income, existing debt obligations, property and investment values, net worth calculations, income-to-average-salary ratios, debt-to-net-worth ratios, payment-to-income ratios, income-to-debt coverage ratios, credit history categories (bad, fair, good, excellent), and overall default risk assessment.
-- **Final Decision**: The ultimate loan approval decision represented as a probability score (0–1), which synthesizes all input variables, computed metrics, and risk assessments to determine the likelihood of mortgage approval.
+- `🟦 Employment & Demographics` - Age, size of company, highest education, employment type, government employee, len employment.
+- `🟩 Financial Inputs` - average salary, reported monthly income, investment value, property owned value, total existing debt, housing status.
+-  `🟧 Loan Parameters`  - Loan Amount, Loan Term.
+- `🟪 Computed Variables` - mortgage eng age, monthly payment, stability income, total stable income monthly, core net worth, years of mortgage after retirement. 
+- `🟨 Risk Ratios` - ratio income debt, ratio debt net worth, ratio income to average salary, ratio payment to income.
+- `🟥 Risk Assesment`  - credit histroy, defaulted
+- **Final Decision**: The ultimate loan approval decision represented as a probability score (0–1), which vraci pravdepodobnost toho ze zadatel o hypoteku ktery zvladne uspesne splatit hypoteku.
   
 More detailed information is provided in the report [staifmatej-report.pdf](staifmatej-report.pdf) in this repository.
 
