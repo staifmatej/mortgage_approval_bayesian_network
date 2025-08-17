@@ -1,6 +1,6 @@
 ![FYI](FYI.png)
 
-# Linear Gaussian Bayesian Network
+# Linear Gaussian Bayesian Network for Mortgage Approval Decision
 
 ## Abstract
 
