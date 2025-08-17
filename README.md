@@ -4,7 +4,9 @@
 
 ## Abstract
 
-TODO
+This project simulates an internal mathematical model for Bayesianhill Bank that trains a **Linear Gaussian Bayesian Network (LGBN)** using the pgmpy library on CSV data from clients who have already repaid or defaulted on their mortgages. Based on this historical data, the **model calculates the probability that a new mortgage applicant will successfully repay their loan** when a banker inputs their information into the system, including loan amount and repayment period to assess risk based on borrowing parameters.
+
+The model is trained on a CSV file that is synthetically yet realistically generated, though the program also offers training on any other arbitrary CSV file within the folder. The goal of this project was to implement and familiarize myself with Bayesian Networks (initially I experimented with Discrete Bayesian Networks using the Pomegranate library). It is important to note that the model is trained on synthetic data and evaluates mortgage approval probability based on this training, which should be taken into consideration. Nevertheless, the model is highly realistic, and I successfully **fine-tuned it to demonstrate the practical power of Bayesian Networks in a compelling and realistic manner**.
 
 ## Detailed Report
 
