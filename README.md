@@ -14,13 +14,13 @@ For a more detailed description of the methodology, results, and analysis, pleas
 
 ![Diagram of the Linear Gaussian Bayesian Network](mortgage_approval_bayesian_network/diagram_photos/bayesian_network_readme.jpg)
 
-- `🟦 Employment & Demographics` - Age, size of company, highest education, employment type, government employee, len employment.
-- `🟩 Financial Inputs` - average salary, reported monthly income, investment value, property owned value, total existing debt, housing status.
--  `🟧 Loan Parameters`  - Loan Amount, Loan Term.
-- `🟪 Computed Variables` - mortgage eng age, monthly payment, stability income, total stable income monthly, core net worth, years of mortgage after retirement. 
-- `🟨 Risk Ratios` - ratio income debt, ratio debt net worth, ratio income to average salary, ratio payment to income.
-- `🟥 Risk Assesment`  - credit histroy, defaulted
-- **Final Decision**: The ultimate loan approval decision represented as a probability score (0–1), which vraci pravdepodobnost toho ze zadatel o hypoteku ktery zvladne uspesne splatit hypoteku.
+- `🟦 Employment & Demographics` - Core applicant characteristics including age, company size, education level, employment type (permanent/temporary/freelancer/unemployed), government employee status, and length of employment. These factors establish the foundation for income stability assessment.
+- `🟩 Financial Inputs` - Primary financial data encompassing average salary benchmarks, reported monthly income, investment portfolios, property ownership values, existing debt obligations, and current housing status. These inputs provide the raw financial picture of the applicant.
+-  `🟧 Loan Parameters`  -  Fundamental loan specifications including the requested loan amount and proposed loan term (1-35 years). These parameters directly
+- `🟪 Computed Variables` - Derived metrics calculated from input data: mortgage end age, monthly payment amounts, income stability scores (0-1), total stable monthly income, core net worth calculations, and years of mortgage payments extending beyond retirement. These variables provide deeper insights into loan feasibility.
+- `🟨 Risk Ratios` - Critical financial ratios for risk assessment: income-to-debt ratios, debt-to-net-worth ratios, income compared to average salary, and payment-to-income ratios. These standardized metrics enable consistent risk evaluation across different applicant profiles.
+- `🟥 Risk Assesment`  - Comprehensive risk evaluation including credit history categorization (bad/fair/good/excellent) and default probability calculations derived from multiple contributing factors throughout the network.
+- **Final Decision** - The ultimate loan approval decision represented as a probability score (0-1), indicating the likelihood that the mortgage applicant will successfully repay the loan without defaulting.
   
 More detailed information is provided in the report [staifmatej-report.pdf](staifmatej-report.pdf) in this repository.
 
