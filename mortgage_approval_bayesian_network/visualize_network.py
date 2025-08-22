@@ -5,7 +5,10 @@ import networkx as nx
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+
 from gaussian_bayesian_network import GaussianBayesianNetwork
+from utils.constants import S_CYAN, E_CYAN
+
 
 def get_edges_from_gbn_model(gbn_model=None):
     """Extract edges from the GaussianBayesianNetwork model."""
@@ -221,7 +224,7 @@ def save_visualization():
     plt.savefig('diagram_photos/bayesian_network_seaborn.png', dpi=300, bbox_inches='tight',
                 facecolor='white', edgecolor='none')
     plt.close()
-    print("Dynamic Bayesian Network visualization saved to diagram_photos/bayesian_network_seaborn.png")
+    print(f"Dynamic Bayesian Network visualization saved to {S_CYAN}diagram_photos/bayesian_network_seaborn.png{E_CYAN}", end="")
 
 if __name__ == "__main__":
     create_bayesian_network_visualization()

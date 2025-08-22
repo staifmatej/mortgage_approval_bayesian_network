@@ -13,6 +13,7 @@ from data_generation_realistic import DataGenerator
 from utils.error_print import print_error_handling, print_invalid_input
 from utils.constants import S_RED, E_RED, S_GREEN, E_GREEN, S_YELLOW, E_YELLOW, S_CYAN, E_CYAN
 from utils.print_press_enter_to_continue import print_press_enter_to_continue
+from visualize_network import create_bayesian_network_visualization
 
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 
@@ -416,13 +417,14 @@ class InputHandler():
         print("2. Process new mortgage applicant")
         print("3. Full reset (new salary, rate & dataset)")
         print("4. Restart entire program")
-        print("5. Exit program")
+        print("5. Generate updated diagram photos")
+        print("6. Exit program")
         print("═════════════════════\n")
 
         for i in range(5):
             try:
-                choice = int(input("Choose option (1-5): "))
-                if 1 <= choice <= 5:
+                choice = int(input("Choose option (1-6): "))
+                if 1 <= choice <=6:
                     return choice
                 if i == 3:
                     print_error_handling("Too many invalid choices.")
@@ -440,6 +442,14 @@ class InputHandler():
         else:
             approval_prob = self.predict_loan_approval(model_gbn, mortgage_applicant_data, loan_amount, loan_term)
 
+        mortgage_age_after_end = loan_term + mortgage_applicant_data["age"]
+        for i in range(int(1e6)):
+            if i % 5 == 0:
+                if mortgage_age_after_end > (self.retirement_age + i):
+                    approval_prob = approval_prob * 0.75
+                else:
+                    break
+
         if approval_prob > 0.65:
             print(f"\nMortgage approval probability: {S_GREEN}{approval_prob:.1%}{E_GREEN}")
         elif approval_prob < 0.4:
@@ -455,7 +465,7 @@ class InputHandler():
         print_press_enter_to_continue()
 
         # handle other program runs.
-        while True:
+        while 1:
             option = self.options()
 
             if option == 1: # Generate new dataset only
@@ -523,6 +533,11 @@ class InputHandler():
                 model_gbn = None
 
             elif option == 5:
+                model = GaussianBayesianNetwork(save_diagram_to_png=True)
+                model.save_diagram_of_gbn(print_info=True)
+                create_bayesian_network_visualization()
+
+            elif option == 6:
                 print(f"\n{S_CYAN}Thank you for using BayesianHill & Co. Bank Mortgage Software, Goodbye!{E_CYAN}\n")
                 sys.exit(0)
 

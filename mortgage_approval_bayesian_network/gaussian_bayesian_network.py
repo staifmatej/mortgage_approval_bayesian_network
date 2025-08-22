@@ -7,7 +7,7 @@ from pgmpy.models import LinearGaussianBayesianNetwork  # pylint: disable=wrong-
 
 from data_loader import LoanDataLoader # pylint: disable=wrong-import-position
 from utils.error_print import print_error_handling, print_warning_handling # pylint: disable=wrong-import-position
-from utils.constants import S_GREEN, E_GREEN, S_BOLD, E_BOLD # pylint: disable=wrong-import-position
+from utils.constants import S_GREEN, E_GREEN, S_BOLD, E_BOLD, S_CYAN, E_CYAN # pylint: disable=wrong-import-position
 
 warnings.filterwarnings('ignore',category=RuntimeWarning, module='sklearn')
 
@@ -75,11 +75,14 @@ class GaussianBayesianNetwork():
         if data is None:
             print_error_handling(f"Dataset not found. Is {self.csv_path} correct?")
 
-    def save_diagram_of_gbn(self):
+    def save_diagram_of_gbn(self, print_info=False):
         """Save Bayesian Network structure diagram to PNG file using Graphviz."""
         if self.save_diagram:
             viz = self.loan_approval_model.to_graphviz()
             viz.draw('diagram_photos/bayesian_network_default.png', prog='dot')
+            if print_info == True:
+                print(f"\nSimple built-in Bayesian Network visualization saved to {S_CYAN}diagram_photos/bayesian_network_default.png{E_CYAN}")
+
 
     def handle_datasets_from_training(self):
         """Load and validate dataset for model training."""
