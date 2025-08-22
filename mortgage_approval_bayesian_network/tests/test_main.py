@@ -310,9 +310,9 @@ class TestInputHandler(unittest.TestCase):
             self.assertTrue(mock_print.called)
 
     def test_print_mortgage_approval_prob(self):
-        """Test mortgage approval probability printing"""
+        """Test mortgage approval probability printing with complete data"""
         mock_model = MagicMock()
-        applicant_data = {'housing_status': 'own'}
+        applicant_data = {'housing_status': 'own', 'age': 30}
 
         with patch.object(self.handler, 'predict_loan_approval', return_value=0.75):
             with patch('builtins.print') as mock_print:
@@ -321,7 +321,6 @@ class TestInputHandler(unittest.TestCase):
                 )
                 # Should print with green color for high approval
                 print_calls = str(mock_print.call_args_list)
-                # Check for 75% or 75.0% in the output
                 self.assertTrue('75' in print_calls or '75.0%' in print_calls)
 
     def test_collect_datasets_user_info(self):

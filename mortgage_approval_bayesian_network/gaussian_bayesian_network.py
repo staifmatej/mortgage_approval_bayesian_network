@@ -80,7 +80,7 @@ class GaussianBayesianNetwork():
         if self.save_diagram:
             viz = self.loan_approval_model.to_graphviz()
             viz.draw('diagram_photos/bayesian_network_default.png', prog='dot')
-            if print_info == True:
+            if print_info is True:
                 print(f"\nSimple built-in Bayesian Network visualization saved to {S_CYAN}diagram_photos/bayesian_network_default.png{E_CYAN}")
 
 

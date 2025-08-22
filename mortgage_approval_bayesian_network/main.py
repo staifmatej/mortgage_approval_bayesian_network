@@ -442,13 +442,16 @@ class InputHandler():
         else:
             approval_prob = self.predict_loan_approval(model_gbn, mortgage_applicant_data, loan_amount, loan_term)
 
-        mortgage_age_after_end = loan_term + mortgage_applicant_data["age"]
-        for i in range(int(1e6)):
-            if i % 5 == 0:
-                if mortgage_age_after_end > (self.retirement_age + i):
-                    approval_prob = approval_prob * 0.75
-                else:
-                    break
+        try:
+            mortgage_age_after_end = loan_term + mortgage_applicant_data["age"]
+            for i in range(int(1e6)):
+                if i % 5 == 0:
+                    if mortgage_age_after_end > (self.retirement_age + i):
+                        approval_prob = approval_prob * 0.75
+                    else:
+                        break
+        except KeyError:
+            print_error_handling("Missing + required 'age' field in applicant data")
 
         if approval_prob > 0.65:
             print(f"\nMortgage approval probability: {S_GREEN}{approval_prob:.1%}{E_GREEN}")
