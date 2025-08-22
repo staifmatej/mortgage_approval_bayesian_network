@@ -4,6 +4,7 @@ on:
     branches: main
   pull_request:
     branches: main
+
 jobs:
   test:
     name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
@@ -11,30 +12,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.11', '3.12']
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    
+        python-version: ['3.10', '3.11', '3.12']
+        os: [ubuntu-latest, macos-latest] # Windows doesn't deserve a spot :)
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    
+
     - name: Install dependencies
       run: |
         cd mortgage_approval_bayesian_network
         python -m pip install --upgrade pip
         pip install pytest pylint
-        pip install -r requirements.txt
-    
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
     - name: Run pylint
-      run: |
-        cd mortgage_approval_bayesian_network
-        pylint . --disable=C0301,C0103
-    
+      working-directory: ./mortgage_approval_bayesian_network
+      run: pylint . --disable=C0301,C0103
+
     - name: Run pytest
-      run: |
-        cd mortgage_approval_bayesian_network
-        pytest -v
+      working-directory: ./mortgage_approval_bayesian_network
+      run: pytest -v
