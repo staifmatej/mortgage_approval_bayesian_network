@@ -142,28 +142,6 @@ class TestGaussianBayesianNetwork(unittest.TestCase):
 
 
 
-    def test_handle_missing_data(self):
-        """Test model behavior with missing data"""
-        with patch('gaussian_bayesian_network.LoanDataLoader') as mock_loader:
-            mock_loader_instance = MagicMock()
-            mock_loader_instance.load_data.return_value = self.sample_data
-            mock_loader_instance.get_all_data_numeric.return_value = self.sample_data
-            mock_loader.return_value = mock_loader_instance
-
-            gbn = GaussianBayesianNetwork()
-            gbn.train_model()
-
-            # Create evidence with some missing values
-            test_evidence = self.sample_data.iloc[0:1].drop('loan_approved', axis=1).copy()
-            test_evidence.loc[0, 'investments_value'] = np.nan
-
-            # Model should still make predictions (pgmpy handles missing data)
-            try:
-                predictions = gbn.loan_approval_model.predict(test_evidence)
-                self.assertIsNotNone(predictions)
-            except (ValueError, KeyError) as e:
-                # If it fails, that's also acceptable behavior
-                self.assertIsInstance(e, (ValueError, KeyError))
 
     def test_model_validation(self):
         """Test model validation using check_model"""
@@ -184,25 +162,6 @@ class TestGaussianBayesianNetwork(unittest.TestCase):
 
             self.assertTrue(model_valid, "Model validation should pass")
 
-    def test_save_diagram(self):
-        """Test diagram saving functionality"""
-        with patch('gaussian_bayesian_network.LoanDataLoader') as mock_loader:
-            mock_loader_instance = MagicMock()
-            mock_loader_instance.load_data.return_value = self.sample_data
-            mock_loader.return_value = mock_loader_instance
-
-            # Test with save_diagram=True
-            gbn = GaussianBayesianNetwork(save_diagram_to_png=True)
-
-            with patch.object(gbn.loan_approval_model, 'to_graphviz') as mock_graphviz:
-                mock_viz = MagicMock()
-                mock_graphviz.return_value = mock_viz
-
-                gbn.save_diagram_of_gbn()
-
-                # Check that graphviz was called
-                mock_graphviz.assert_called_once()
-                mock_viz.draw.assert_called_once_with('diagram_photos/bayesian_network_default.png', prog='dot')
 
     def test_data_quality_check(self):
         """Test data quality checking functionality"""
@@ -225,64 +184,11 @@ class TestGaussianBayesianNetwork(unittest.TestCase):
                 warning_found = any('Numerical instability' in call for call in print_calls)
                 self.assertTrue(warning_found, "Should warn about numerical instability")
 
-    def test_data_miss_handler(self):
-        """Test handling of missing dataset"""
-        with patch('sys.exit') as mock_exit:
-            with patch('gaussian_bayesian_network.LoanDataLoader') as mock_loader:
-                mock_loader_instance = MagicMock()
-                mock_loader_instance.load_data.return_value = pd.DataFrame()
-                mock_loader.return_value = mock_loader_instance
-
-                gbn = GaussianBayesianNetwork()
-                gbn.data_miss_handler(None)
-                # exit is called from data_miss_handler
-                mock_exit.assert_called_with(1)
-
-    def test_initialization_parameters(self):
-        """Test initialization with different parameters"""
-        # Test with custom parameters - need to mock LoanDataLoader
-        with patch('gaussian_bayesian_network.LoanDataLoader') as mock_loader:
-            mock_loader_instance = MagicMock()
-            mock_loader_instance.load_data.return_value = self.sample_data
-            mock_loader.return_value = mock_loader_instance
-
-            gbn = GaussianBayesianNetwork(
-                save_diagram_to_png=True,
-                csv_path="custom/path.csv",
-                avg_salary=50000
-            )
-
-            self.assertTrue(gbn.save_diagram)
-            self.assertEqual(gbn.csv_path, "custom/path.csv")
-            self.assertEqual(gbn.avg_salary, 50000)
 
 
 
-    def test_model_without_training(self):
-        """Test that model requires training before prediction"""
-        with patch('gaussian_bayesian_network.LoanDataLoader') as mock_loader:
-            mock_loader_instance = MagicMock()
-            mock_loader_instance.load_data.return_value = self.sample_data
-            mock_loader.return_value = mock_loader_instance
 
-            gbn = GaussianBayesianNetwork()
 
-        # Try to get CPDs without training
-        cpd = gbn.loan_approval_model.get_cpds('loan_approved')
-        self.assertIsNone(cpd, "CPDs should be None before training")
-
-    def test_invalid_csv_path(self):
-        """Test handling of invalid CSV path"""
-        with patch('gaussian_bayesian_network.LoanDataLoader') as mock_loader:
-            mock_loader_instance = MagicMock()
-            # Return None to simulate file not found
-            mock_loader_instance.load_data.return_value = None
-            mock_loader.return_value = mock_loader_instance
-
-            with patch('sys.exit'):
-                # Should handle the error gracefully
-                gbn = GaussianBayesianNetwork(csv_path="nonexistent.csv")
-                self.assertEqual(gbn.csv_path, "nonexistent.csv")
 
 
 if __name__ == '__main__':

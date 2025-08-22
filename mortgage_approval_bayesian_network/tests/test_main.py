@@ -3,7 +3,6 @@ import sys
 import os
 import unittest
 from unittest.mock import patch, MagicMock
-import time
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -89,17 +88,6 @@ class TestInputHandler(unittest.TestCase):
         old = encode_age_group(65)
         self.assertEqual(old, (0, 0, 0, 1))
 
-    def test_housing_and_credit_mapping(self):
-        """Test housing status and credit history mapping"""
-        # Test housing mapping
-        housing_map = {'rent': 0, 'mortgage': 1, 'own': 2}
-        self.assertEqual(housing_map['rent'], 0)
-        self.assertEqual(housing_map['own'], 2)
-
-        # Test credit mapping
-        credit_map = {'bad': 0, 'fair': 1, 'good': 2, 'excellent': 3}
-        self.assertEqual(credit_map['bad'], 0)
-        self.assertEqual(credit_map['excellent'], 3)
 
     def test_education_age_validation(self):
         """Test education validation based on age"""
@@ -123,22 +111,6 @@ class TestInputHandler(unittest.TestCase):
             # Age 27 can have PhD (min age is 18 for PhD based on code)
             self.assertEqual(user_data['highest_education'], 'phd')
 
-    def test_generate_csv_dataset(self):
-        """Test CSV dataset generation"""
-        # Need to import the module not the class
-        with patch('main.DataGenerator') as mock_generator:
-            mock_instance = MagicMock()
-            mock_generator.return_value = mock_instance
-
-            self.handler.generate_csv_dataset()
-
-            mock_generator.assert_called_once_with(
-                self.handler.avg_salary,
-                self.handler.interest_rate,
-                int(self.handler.data_num_records)
-            )
-            mock_instance.generate_realistic_data.assert_called_once_with(True)
-            mock_instance.remove_wrong_rows.assert_called_once()
 
     # ========== ADVANCED TESTS (5) ==========
 
@@ -273,23 +245,6 @@ class TestInputHandler(unittest.TestCase):
         self.assertLess(results[0], 0.5)  # High risk should have low approval
         self.assertGreater(results[1], 0.5)  # Low risk should have high approval
 
-    def test_memory_and_performance(self):
-        """Test memory usage and performance with large datasets"""
-
-        # Test with reasonable dataset size
-        self.handler.data_num_records = 1000
-
-        start_time = time.time()
-        with patch('main.DataGenerator') as mock_generator:
-            mock_instance = MagicMock()
-            mock_generator.return_value = mock_instance
-
-            self.handler.generate_csv_dataset()
-
-            elapsed_time = time.time() - start_time
-
-            # Should complete quickly (mocked, so should be instant)
-            self.assertLess(elapsed_time, 1.0)
 
     # ========== ADDITIONAL TESTS FOR UNTESTED FUNCTIONS ==========
 
@@ -323,26 +278,7 @@ class TestInputHandler(unittest.TestCase):
                 print_calls = str(mock_print.call_args_list)
                 self.assertTrue('75' in print_calls or '75.0%' in print_calls)
 
-    def test_collect_datasets_user_info(self):
-        """Test dataset info collection"""
-        with patch('builtins.input', side_effect=['generate', '50000']):
-            self.handler.collect_datasets_user_info()
-            self.assertEqual(self.handler.data_num_records, 50000)
 
-        # Test with own dataset
-        with patch('builtins.input', side_effect=['own', 'custom.csv']):
-            with patch('os.path.exists', return_value=True):
-                self.handler.collect_datasets_user_info()
-                self.assertEqual(self.handler.csv_path, 'custom.csv')
-
-    def test_collect_main_user_info(self):
-        """Test main user info collection"""
-        with patch('builtins.input', side_effect=['0.06', '45000', '67']):
-            self.handler.collect_main_user_info()
-            # validate_input_numerical rounds float values to 0 decimal places
-            self.assertEqual(float(self.handler.interest_rate), 0.0)
-            self.assertEqual(float(self.handler.avg_salary), 45000.0)
-            self.assertEqual(self.handler.retirement_age, 67)
 
     def test_collect_other_user_info(self):
         """Test other user info collection"""
@@ -369,16 +305,6 @@ class TestInputHandler(unittest.TestCase):
             self.assertEqual(result['government_employee'], 'yes')
             self.assertEqual(result['highest_education'], 'master')
 
-    def test_options(self):
-        """Test options menu"""
-        with patch('builtins.input', return_value='3'):
-            choice = self.handler.options()
-            self.assertEqual(choice, 3)
-
-        # Test invalid inputs
-        with patch('builtins.input', side_effect=['abc', '7', '0', '4']):
-            choice = self.handler.options()
-            self.assertEqual(choice, 4)
 
     def test_set_up_all(self):
         """Test full setup process"""

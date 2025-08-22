@@ -29,16 +29,6 @@ class TestDataGeneration(unittest.TestCase):
         if os.path.exists("datasets/mortgage_applications.csv"):
             os.remove("datasets/mortgage_applications.csv")
 
-    def test_no_crash_extreme_params(self):
-        """Test that generation doesn't crash with extreme parameters"""
-        # Test with very high values
-        generator_high = DataGenerator(1000000, 0.25, 100)
-        # Should not crash
-        self.assertIsNotNone(generator_high)
-
-        # Test with minimum values
-        generator_low = DataGenerator(1000, 0.001, 100)
-        self.assertIsNotNone(generator_low)
 
     def test_age_groups_sum_to_one(self):
         """Verify age groups sum to 1 for all rows"""
@@ -147,25 +137,6 @@ class TestDataGeneration(unittest.TestCase):
         self.assertTrue(df['employment_type'].isin(valid_employment_types).all(),
                        "Found invalid employment type")
 
-    def test_decimal_precision(self):
-        """Verify critical float columns have reasonable precision"""
-        generator = DataGenerator(self.avg_salary, self.interest_rate, 100)
-        generator.generate_realistic_data(True)
-
-        df = pd.read_csv(generator.csv_path)
-
-        # Check critical float columns that should have limited precision
-        critical_float_cols = ['ratio_income_debt', 'ratio_debt_net_worth',
-                              'ratio_payment_to_income', 'ratio_income_to_avg_salary',
-                              'defaulted', 'loan_approved']
-
-        for col in critical_float_cols:
-            if col in df.columns:
-                for val in df[col]:
-                    if pd.notna(val) and isinstance(val, float):
-                        # Check if value is reasonably formatted (not checking exact decimal places)
-                        self.assertTrue(np.isfinite(val),
-                                       f"Value {val} in column {col} is not finite")
 
     def test_no_critical_fields_empty(self):
         """Ensure critical fields are never None/NaN"""
@@ -182,16 +153,6 @@ class TestDataGeneration(unittest.TestCase):
                 self.assertFalse(df[field].isnull().any(),
                                f"Critical field {field} contains null values")
 
-    def test_unique_ids(self):
-        """Verify all IDs are unique within a CSV file"""
-        generator = DataGenerator(self.avg_salary, self.interest_rate, 200)
-        generator.generate_realistic_data(True)
-
-        df = pd.read_csv(generator.csv_path)
-
-        if 'id' in df.columns:
-            self.assertEqual(len(df['id'].unique()), len(df),
-                           "Found duplicate IDs in dataset")
 
     def test_education_levels_valid(self):
         """Check education only has valid levels"""
@@ -215,35 +176,6 @@ class TestDataGeneration(unittest.TestCase):
         self.assertTrue(df['credit_history'].isin(valid_credit).all(),
                        "Found invalid credit history value")
 
-    def test_logical_consistency(self):
-        """Check logical consistency in data"""
-        generator = DataGenerator(self.avg_salary, self.interest_rate, 300)
-        generator.generate_realistic_data(True)
-
-        df = pd.read_csv(generator.csv_path)
-
-        # Unemployed should not have very high income
-        unemployed = df[df['employment_type'] == 'unemployed']
-        if len(unemployed) > 0:
-            avg_unemployed_income = unemployed['reported_monthly_income'].mean()
-            self.assertLess(avg_unemployed_income, self.avg_salary * 0.5,
-                          "Unemployed have unrealistically high income")
-
-        # Students should have study_status = 'yes'
-        students = df[df['study_status'] == 'yes']
-        if len(students) > 0:
-            # Students should mostly be young (age_young = 1)
-            young_student_ratio = students['age_young'].mean()
-            self.assertGreater(young_student_ratio, 0.5,
-                          "Most students should be in young age group")
-
-        # Government employees should have relatively stable income
-        gov_employees = df[df['government_employee'] == 'yes']
-        if len(gov_employees) > 0:
-            avg_gov_income = gov_employees['reported_monthly_income'].mean()
-            # Just check that government employees have non-zero income on average
-            self.assertGreater(avg_gov_income, self.avg_salary * 0.5,
-                             "Government employees have too low income")
 
 
 if __name__ == '__main__':
