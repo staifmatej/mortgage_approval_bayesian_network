@@ -17,8 +17,6 @@ class TestInputHandler(unittest.TestCase):
     def setUp(self):
         self.handler = InputHandler()
 
-    # ========== BASIC TESTS (10) ==========
-
     def test_validate_input_alpha_valid(self):
         """Test valid alpha input validation"""
         with patch('builtins.input', return_value='yes'):
