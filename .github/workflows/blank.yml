@@ -23,16 +23,16 @@ jobs:
         python-version: ${{ matrix.python-version }}
     
     - name: Install dependencies
-      working-directory: ./mortgage_approval_bayesian_network/mortgage_approval_bayesian_network
       run: |
+        cd mortgage_approval_bayesian_network
         python -m pip install --upgrade pip
         pip install pytest pylint
         pip install -r requirements.txt
     
     - name: Run pylint
-      working-directory: ./mortgage_approval_bayesian_network/mortgage_approval_bayesian_network
+      working-directory: ./mortgage_approval_bayesian_network
       run: pylint . --disable=C0301,C0103
     
     - name: Run pytest
-      working-directory: ./mortgage_approval_bayesian_network/mortgage_approval_bayesian_network
+      working-directory: ./mortgage_approval_bayesian_network
       run: pytest -v
