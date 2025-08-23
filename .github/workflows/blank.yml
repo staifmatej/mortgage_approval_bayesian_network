@@ -32,7 +32,7 @@ jobs:
     - name: Run pylint
       working-directory: ./mortgage_approval_bayesian_network
       run: |
-        find . -name "*.py" -exec pylint {} --disable=C0301,C0103 \;
+        python -c "import os; import subprocess; [subprocess.run(['pylint', f, '--disable=C0301,C0103']) for root, dirs, files in os.walk('.') for f in files if f.endswith('.py') for f in [os.path.join(root, f)]]"
 
     - name: Run pytest
       working-directory: ./mortgage_approval_bayesian_network
