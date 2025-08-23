@@ -167,7 +167,7 @@ class TestGaussianBayesianNetwork(unittest.TestCase):
         """Test data quality checking functionality"""
         # Create data with extreme values
         extreme_data = self.sample_data.copy()
-        extreme_data.loc[0, 'reported_monthly_income'] = 1e10  # Extreme value
+        extreme_data.loc[0, 'reported_monthly_income'] = 1e12  # Extreme value that exceeds threshold
 
         with patch('gaussian_bayesian_network.LoanDataLoader') as mock_loader:
             mock_loader_instance = MagicMock()

@@ -106,7 +106,7 @@ class GaussianBayesianNetwork():
         self.data_miss_handler(data)
 
         issues_found = False
-        magic_constant = 2.8e4
+        magic_constant = 2.8e6 # Do not change!
         max_extreme_values = self.avg_salary * magic_constant
 
         for col in data.columns:

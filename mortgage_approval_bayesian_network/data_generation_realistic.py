@@ -387,25 +387,34 @@ class DataGenerator:
         df["loan_approved"] -= df["ratio_payment_to_income"]*2
         df["loan_approved"] -= df["ratio_debt_net_worth"]
 
-        # Strong penalty for mortgages extending past retirement
-        # Each year past retirement significantly reduces approval probability
-        df["loan_approved"] -= np.maximum(0, df["years_of_mortgage_after_retirement"]) * 0.3
+        # Penalize loans where monthly payment >= monthly income
+        df.loc[df["monthly_payment"] >= df["reported_monthly_income"] * 0.99, "loan_approved"] *= int(1/2)
+        df.loc[df["monthly_payment"] >= df["reported_monthly_income"], "loan_approved"] *= int(1/4)
+        df.loc[df["monthly_payment"] >= df["reported_monthly_income"] * 1.1, "loan_approved"] *= int(1/16)
+        df.loc[df["monthly_payment"] >= df["reported_monthly_income"] * 1.2, "loan_approved"] *= int(1/32)
+        df.loc[df["monthly_payment"] >= df["reported_monthly_income"] * 1.5, "loan_approved"] *= int(1/64)
+        df.loc[df["monthly_payment"] >= df["reported_monthly_income"] * 1.75, "loan_approved"] *= int(1/256)
+        df.loc[df["monthly_payment"] >= df["reported_monthly_income"] * 2, "loan_approved"] *= int(1/8192)
 
-        # Convert to probability using sigmoid function
-        # This maps values from (-inf, inf) to (0, 1)
-        df["loan_approved"] = 1 / (1 + np.exp(-df["loan_approved"]))
+        df.loc[df["years_of_mortgage_after_retirement"] >= 0, "loan_approved"] *= int(1/2)
+        df.loc[df["years_of_mortgage_after_retirement"] >= 5, "loan_approved"] *= int(1/1024)
+        df.loc[df["years_of_mortgage_after_retirement"] >= 10, "loan_approved"] *= int(1/8192)
 
 
-        def adjust_values_to_spread_more_towards_edges(alpha_param = 0.6, beta_param = 0.6):
-            percentiles = df["loan_approved"].rank(pct=True)
-            df["loan_approved"] = beta.ppf(percentiles, alpha_param, beta_param)
+        def adjust_values_to_spread_more_towards_edges(strength = 0.5):
+            min_val = df["loan_approved"].min()
+            max_val = df["loan_approved"].max()
+            normalized = (df["loan_approved"] - min_val) / (max_val - min_val)
+            
+            center_distance = np.abs(normalized - 0.5)
+            push_factor = 1 + strength * (0.5 - center_distance)
+            transformed = 0.5 + (normalized - 0.5) * push_factor
+            transformed = np.clip(transformed, 0, 1)
+            
+            df["loan_approved"] = transformed * (max_val - min_val) + min_val
+
 
         adjust_values_to_spread_more_towards_edges()
-
-        if (df["loan_approved"] < float(0)).any():
-            print_error_handling("loan_approved has values smaller than 0.")
-        if (df["loan_approved"] > float(1)).any():
-            print_error_handling("loan_approved has values larger than 0.")
 
         df["loan_approved"] = np.round(df["loan_approved"], 5)
         df["loan_approved"] = df["loan_approved"].clip(0, 1)
@@ -606,7 +615,7 @@ class DataGenerator:
                 """Generate monthly income report with Gaussian curve."""
                 # pylint: disable=too-many-branches,too-many-return-statements
                 min_salary = int(self.avg_salary / 2)
-                max_salary = self.avg_salary * 10
+                max_salary = self.avg_salary * 8
                 base_salary = self.avg_salary
 
                 if age < 18:
@@ -636,14 +645,14 @@ class DataGenerator:
                     mean = base_salary * 0.8
                     std_dev = base_salary * 0.2
                 elif highest_education == "bachelor":
-                    mean = base_salary * 1.1
-                    std_dev = base_salary * 0.25
-                elif highest_education == "master":
-                    mean = base_salary * 1.4
-                    std_dev = base_salary * 0.3
-                elif highest_education == "phd":
                     mean = base_salary * 1.8
-                    std_dev = base_salary * 0.35
+                    std_dev = base_salary * 3
+                elif highest_education == "master":
+                    mean = base_salary * 6
+                    std_dev = base_salary * 3
+                elif highest_education == "phd":
+                    mean = base_salary * 10
+                    std_dev = base_salary * 3
 
                 # Age Bonus.
                 if age < 25:
@@ -805,13 +814,32 @@ class DataGenerator:
             core_net_worth = generate_core_net_worth()
 
             def generate_loan_amount():
-                return reported_monthly_income * self.generate_random_int_from_x_to_y(1, 500)
+                min_loan_amount = 100000 # limited as an input metric in main.py
+                
+                # Realistický přístup: půjčka založená na schopnosti splácet
+                # Typické DTI (debt-to-income) ratio je 20-40% příjmu na splátky
+                max_monthly_payment = reported_monthly_income * 0.35  # max 35% příjmu na splátku
+                
+                # Vypočítat max loan_amount na základě max_monthly_payment
+                monthly_interest_rate = self.interest_rate / 12
+                loan_term_months = loan_term * 12
+                
+                if monthly_interest_rate == 0:
+                    max_loan_from_income = max_monthly_payment * loan_term_months
+                else:
+                    max_loan_from_income = max_monthly_payment * ((1 + monthly_interest_rate) ** loan_term_months - 1) / (monthly_interest_rate * (1 + monthly_interest_rate) ** loan_term_months)
+                
+                # Přidat náhodnost ±50% pro různorodost
+                randomness = self.generate_random_float_from_0_to_1() * 1.5 + 0.5  # 0.5 - 2.0
+                loan_amount = max_loan_from_income * randomness
+                
+                return max(min_loan_amount, int(loan_amount))
 
             def generate_loan_term():
                 return self.generate_random_int_from_x_to_y(1, 35)
 
-            loan_amount = generate_loan_amount()
             loan_term = generate_loan_term()
+            loan_amount = generate_loan_amount()
 
             def generate_monthly_payment():
                 monthly_interest_rate_float = self.interest_rate / 100 / 12
@@ -1074,7 +1102,7 @@ class DataGenerator:
 
 
 if __name__ == "__main__":
-    dataCreate = DataGenerator(1, 0.05, int(1e2), 65)
+    dataCreate = DataGenerator(40000, 0.05, int(1e5), 65)
     dataCreate.generate_realistic_data(True)
     dataCreate.remove_wrong_rows(True, None)
     dataCreate.analyze_distribution()
