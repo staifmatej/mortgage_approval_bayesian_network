@@ -82,9 +82,6 @@ class InputHandler():
                     print_invalid_input(f"Value must be at most {max_val}. [{i+1}/{max_attempts}]")
                     continue
 
-                if True == False:
-                    print("hh")
-
                 return value
 
             except ValueError:
