@@ -31,7 +31,8 @@ jobs:
 
     - name: Run pylint
       working-directory: ./mortgage_approval_bayesian_network
-      run: pylint . --disable=C0301,C0103
+      run: |
+        find . -name "*.py" -exec pylint {} --disable=C0301,C0103 \;
 
     - name: Run pytest
       working-directory: ./mortgage_approval_bayesian_network
