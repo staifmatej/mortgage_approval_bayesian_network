@@ -33,7 +33,7 @@ jobs:
     - name: Run pylint
       run: |
         cd mortgage_approval_bayesian_network
-        pylint . --disable=C0301,C0103
+        pylint . --disable=C0301,C0103 --init-hook="import sys; sys.path.append('.')"
 
     - name: Run pytest
       working-directory: ./mortgage_approval_bayesian_network
