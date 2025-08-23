@@ -1,1 +1,1 @@
-# Mortgage Approval Bayesian Network Package
+""" Mortgage Approval Bayesian Network Package. """
