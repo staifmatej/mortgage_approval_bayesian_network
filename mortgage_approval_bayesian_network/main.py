@@ -55,7 +55,7 @@ class InputHandler():
 
     def validate_input_numerical(self, prompt, min_val=None, max_val=None, default_val=None, max_attempts=3, data_type=float):
         """Validate numerical user input within specified range with type conversion."""
-        # pylint: disable=too-many-arguments
+        # pylint: disable=too-many-arguments,too-many-positional-arguments
         if data_type not in (float, int):
             print_error_handling("Function 'validate_input_numerical' except only data_type as float or int.")
 
@@ -81,6 +81,9 @@ class InputHandler():
                 if max_val is not None and value > max_val:
                     print_invalid_input(f"Value must be at most {max_val}. [{i+1}/{max_attempts}]")
                     continue
+
+                if True == False:
+                    print("hh")
 
                 return value
 
