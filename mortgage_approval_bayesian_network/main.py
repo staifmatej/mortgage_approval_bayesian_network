@@ -43,11 +43,12 @@ class InputHandler():
                 print_error_handling("Error loading input")
             try:
                 user_input = input(prompt).strip().lower()
-            except EOFError:
-                print_invalid_input(f"{e}")
-            except (KeyboardInterrupt, ValueError) as e:
+            except ValueError as e:
                 print_invalid_input(f"{e}. [{i+1}/{max_attempts}]")
                 continue
+            except (KeyboardInterrupt, EOFError):
+                print(f"{S_RED} Program Interupted.{E_RED}")
+                sys.exit(1)
 
             if user_input in valid_options:
                 return user_input
@@ -94,9 +95,9 @@ class InputHandler():
             except ValueError:
                 print_invalid_input(f"Please enter a valid number. [{i+1}/{max_attempts}]")
                 continue
-            except (KeyboardInterrupt, EOFError) as e:
-                print_invalid_input(f"{e}. [{i+1}/{max_attempts}]")
-                continue
+            except (KeyboardInterrupt, EOFError):
+                print(f"{S_RED} Program Interupted.{E_RED}")
+                sys.exit(1)
 
         return None
 
