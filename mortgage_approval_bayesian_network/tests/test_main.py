@@ -102,7 +102,7 @@ class TestInputHandler(unittest.TestCase):
             '0',         # existing debt
             'no',        # extra net worth (no investments/property)
             'rent',      # housing status
-            'good'       # credit history
+            'fair'       # credit history
         ]
         with patch('builtins.input', side_effect=inputs):
             user_data = self.handler.collect_other_user_info()
@@ -178,7 +178,7 @@ class TestInputHandler(unittest.TestCase):
                         '100000',  # investments
                         '2000000', # property value
                         'own',     # housing status
-                        'good',    # credit history
+                        'excellent',    # credit history
                         '3000000', # loan amount
                         '20'       # loan term
                     ]
@@ -294,7 +294,7 @@ class TestInputHandler(unittest.TestCase):
             '100000',    # investments
             '2000000',   # property value
             'own',       # housing status
-            'good'       # credit history
+            'fair'       # credit history
         ]
 
         with patch('builtins.input', side_effect=inputs):

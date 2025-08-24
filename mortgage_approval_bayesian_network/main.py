@@ -314,8 +314,8 @@ class InputHandler():
             credit_history = "bad"
         else:
             credit_history = self.validate_input_alpha(
-                "Mortgage applicant credit score (bad/fair/good/excellent): ",
-                ["bad", "fair", "good", "excellent"]
+                "Mortgage applicant credit score (bad/fair/excellent): ",
+                ["bad", "fair", "excellent"]
             )
 
         return {
@@ -357,7 +357,7 @@ class InputHandler():
         age_young, age_prime, age_senior, age_old = encode_age_group(mortgage_applicant_data['age'])
 
         housing_map = {'rent': 0, 'mortgage': 1, 'own': 2}
-        credit_map = {'bad': 0, 'fair': 1, 'good': 2, 'excellent': 3}
+        credit_map = {'bad': 0, 'fair': 1, 'excellent': 2}
         education_map = {'basic': 0, 'high_school': 1, 'bachelor': 2, 'master': 3, 'phd': 4}
         employment_map = {'unemployed': 0, 'temporary': 1, 'freelancer': 1, 'permanent': 2}
 
@@ -416,12 +416,12 @@ class InputHandler():
                           ratio_payment <= 0.7):
                         adjustment_factor *= 6.0
                     
-                    # Bonusy pro good profily
-                    elif (mortgage_applicant_data['credit_history'] == 'good' and 
-                          mortgage_applicant_data['government_employee'] == 'yes' and 
+                    # Bonusy pro fair profily
+                    elif (mortgage_applicant_data['credit_history'] == 'fair' and
+                          mortgage_applicant_data['government_employee'] == 'yes' and
                           ratio_payment <= 0.3):
                         adjustment_factor *= 4.0
-                    elif (mortgage_applicant_data['credit_history'] == 'good' and 
+                    elif (mortgage_applicant_data['credit_history'] == 'fair' and
                           ratio_payment <= 0.2):
                         adjustment_factor *= 3.0
                     

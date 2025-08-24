@@ -281,6 +281,7 @@ class DataGenerator:
 
         if pbar is not None:
             pbar.update(1)
+
         income_risk = 1 - df["ratio_income_to_avg_salary"].clip(0, 1)
         df["defaulted"] += income_risk * 0.15
 
@@ -289,7 +290,6 @@ class DataGenerator:
         df.loc[df["housing_status"] == "rent", "defaulted"] *= 1.15      # 15% risk increase
 
         df.loc[df["credit_history"] == "excellent", "defaulted"] *= 0.5  # 50% risk reduction
-        df.loc[df["credit_history"] == "good", "defaulted"] *= 0.75      # 25% risk reduction
         df.loc[df["credit_history"] == "fair", "defaulted"] *= 1.25      # 25% risk increase
         df.loc[df["credit_history"] == "bad", "defaulted"] *= 2.0        # 100% risk increase
 
@@ -387,19 +387,19 @@ class DataGenerator:
         df["defaulted"] = df["defaulted"].clip(0, 2)
 
         max_defaulted = max(df["defaulted"])
-        df["loan_approved"] = max(1, max_defaulted * 100)
-        df["loan_approved"] = df["loan_approved"] - df["defaulted"] * 10
-
-        df.loc[df["credit_history"] == "excellent", "loan_approved"] *= 2
-        df.loc[df["credit_history"] == "good", "loan_approved"] *= 1.5
-        df.loc[df["credit_history"] == "fair", "loan_approved"] *= 1
-        df.loc[df["credit_history"] == "bad", "loan_approved"] *= 0.75
+        df["loan_approved"] = max(1, max_defaulted * 1000)
+        df["loan_approved"] = df["loan_approved"] - df["defaulted"] * 50
 
         if pbar is not None:
             pbar.update(1)
 
         df["loan_approved"] -= df["ratio_payment_to_income"] * 90
         df["loan_approved"] -= df["ratio_debt_net_worth"] * 50
+        df.loc[df["ratio_debt_net_worth"] == 0, "loan_approved"] += 25
+
+        df.loc[df["credit_history"] == "excellent", "loan_approved"] *= 2
+        df.loc[df["credit_history"] == "fair", "loan_approved"] *= 1
+        df.loc[df["credit_history"] == "bad", "loan_approved"] *= 0.75
 
         for years in range(0, int(1e6), 5):
             mask = df["years_of_mortgage_after_retirement"] > years
@@ -412,24 +412,26 @@ class DataGenerator:
 
         def adjust_values_to_spread_more_towards_edges02():
             df.loc[
-                (df["credit_history"] == "excellent") & 
+                (df["credit_history"] != "bad") &
                 (df["government_employee"] == 1) & 
-                (df["ratio_payment_to_income"] <= 0.6), 
-                "loan_approved"
-            ] *= 0.99
+                (df["ratio_payment_to_income"] <= 0.55),
+                "loan_approved"] *= 1.5
             
             df.loc[
-                (df["credit_history"] == "excellent") & 
-                (df["ratio_payment_to_income"] <= 0.7), 
-                "loan_approved"
-            ] *= 0.9
-            
+                (df["credit_history"] != "bad") &
+                (df["ratio_payment_to_income"] <= 0.55),
+                "loan_approved"] *= 1.2
+
             df.loc[
-                (df["credit_history"] == "good") & 
-                (df["ratio_payment_to_income"] <= 0.5), 
+                df["housing_status"] == "homeless",
                 "loan_approved"
-            ] *= 0.8
-            
+            ] *= 0.0001
+
+            df.loc[
+                df["study_status"] == "yes",
+                "loan_approved"
+            ] *= 0.00001
+
             # Špatné profily - od nejhorších k mírnějším
             df.loc[
                 df["credit_history"] == "bad", 
@@ -449,33 +451,23 @@ class DataGenerator:
             df.loc[
                 df["ratio_payment_to_income"] > 0.5, 
                 "loan_approved"
-            ] *= 0.001
+            ] *= 0.1
 
         adjust_values_to_spread_more_towards_edges02()
 
         # Finální normalizace na 0-1 rozsah (zachovává interpretovatelnost)
         df["loan_approved"] = (df["loan_approved"] - df["loan_approved"].min()) / (df["loan_approved"].max() - df["loan_approved"].min())
 
-        # FINÁLNÍ pevné hodnoty PO normalizaci (tohle přepíše vše ostatní)
-        df.loc[
-            (df["credit_history"] == "excellent") & 
-            (df["government_employee"] == 1) & 
-            (df["ratio_payment_to_income"] <= 0.6), 
-            "loan_approved"
-        ] *= 0.95
-        
-        df.loc[
-            (df["credit_history"] == "excellent") & 
-            (df["ratio_payment_to_income"] <= 0.7), 
-            "loan_approved"
-        ] *= 0.85
-        
         df.loc[
             (df["credit_history"] == "bad") | 
             (df["ratio_payment_to_income"] > 0.5), 
             "loan_approved"
         ] *= 0.05
 
+        df.loc[
+            (df["study_status"] == "yes") & (df["age"] < 26),
+            "loan_approved"
+        ] *= 0.00001
 
         df["loan_approved"] = np.round(df["loan_approved"], 5)
 
@@ -487,10 +479,9 @@ class DataGenerator:
             count_above = (df["loan_approved"] > 1).sum()
             print_error_handling(f"Invalid loan_approved values found: {count_below} below 0, {count_above} above 1. Range: [{min_val:.5f}, {max_val:.5f}]")
 
-        df["loan_approved"] = df["loan_approved"].clip(0, 1)
-
         if pbar is not None:
             pbar.update(1)
+
         df.to_csv(self.csv_path, index=False)
 
 
@@ -1022,8 +1013,6 @@ class DataGenerator:
                 if score >= 95:
                     return "excellent"
                 if score >= 75:
-                    return "good"
-                if score >= 50:
                     return "fair"
                 return "bad"
 
