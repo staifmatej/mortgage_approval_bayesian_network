@@ -397,7 +397,7 @@ class InputHandler():
                     approval_prob = mean_values[0][idx]  # First row, idx column
                     approval_prob = float(approval_prob)
                     approval_prob = max(0, min(1, approval_prob))
-                    
+
                     if mortgage_applicant_data['reported_monthly_income'] != 0:
                         ratio_payment = monthly_payment / mortgage_applicant_data['reported_monthly_income']
                     else:
@@ -406,16 +406,16 @@ class InputHandler():
 
                     # Adjustments based on key factors
                     adjustment_factor = 1.0
-                    
+
                     # Bonusy pro excellent profily
-                    if (mortgage_applicant_data['credit_history'] == 'excellent' and 
-                        mortgage_applicant_data['government_employee'] == 'yes' and 
+                    if (mortgage_applicant_data['credit_history'] == 'excellent' and
+                        mortgage_applicant_data['government_employee'] == 'yes' and
                         ratio_payment <= 0.6):
                         adjustment_factor *= 8.0
-                    elif (mortgage_applicant_data['credit_history'] == 'excellent' and 
+                    elif (mortgage_applicant_data['credit_history'] == 'excellent' and
                           ratio_payment <= 0.7):
                         adjustment_factor *= 6.0
-                    
+
                     # Bonusy pro fair profily
                     elif (mortgage_applicant_data['credit_history'] == 'fair' and
                           mortgage_applicant_data['government_employee'] == 'yes' and
@@ -424,7 +424,7 @@ class InputHandler():
                     elif (mortgage_applicant_data['credit_history'] == 'fair' and
                           ratio_payment <= 0.2):
                         adjustment_factor *= 3.0
-                    
+
                     # Penalizace pro vysoké payment ratios nebo špatnou bonitu
                     if ratio_payment > 1.0:
                         adjustment_factor *= 0.1
@@ -432,20 +432,20 @@ class InputHandler():
                         adjustment_factor *= 0.4
                     elif mortgage_applicant_data['credit_history'] == 'bad':
                         adjustment_factor *= 0.2
-                    
+
                     # Penalizace pro splácení po důchodu
                     mortgage_end_age = mortgage_applicant_data['age'] + loan_term
                     if mortgage_end_age > self.retirement_age:
                         years_after_retirement = mortgage_end_age - self.retirement_age
                         # Každý rok po důchodu penalizuje o 20%
                         adjustment_factor *= (0.8 ** years_after_retirement)
-                    
+
                     # Aplikovat adjustment
                     approval_prob *= adjustment_factor
-                    
+
                     # Normalizovat na 0-1
                     approval_prob = min(max(approval_prob, 0.0), 1.0)
-                    
+
                     return approval_prob
                 print_error_handling("loan_approved not found in predictions.")
                 return 0.0

@@ -1,3 +1,4 @@
+"""Test realistic probability results for mortgage approval scenarios."""
 import unittest
 import sys
 import os
@@ -8,6 +9,7 @@ from main import InputHandler
 
 
 class TestRealisticProbResults(unittest.TestCase):
+    """Test class for realistic mortgage approval probability scenarios."""
 
     def setUp(self):
         self.handler = InputHandler()
@@ -16,16 +18,17 @@ class TestRealisticProbResults(unittest.TestCase):
         self.handler.interest_rate = 0.05
         self.handler.retirement_age = 65
         self.handler.data_num_records = 100000
-        
+
         if not os.path.exists(self.handler.csv_path):
             self.handler.generate_csv_dataset()
 
     def test_low_probability_applicant_01(self):
+        """Test low probability mortgage applicant scenario 01."""
         model_gbn = self.handler.train_and_validate_gbn()
         low_prob_applicant = {
             'age': 65,
             'government_employee': 'no',
-            'highest_education': 'basic', 
+            'highest_education': 'basic',
             'study_status': 'no',
             'employment_type': 'temporary',
             'len_employment': 1,
@@ -37,17 +40,18 @@ class TestRealisticProbResults(unittest.TestCase):
             'housing_status': 'rent',
             'credit_history': 'bad'
         }
-        
+
         loan_amount = 3000000
         loan_term = 25
         probability = self.handler.predict_loan_approval(
             model_gbn, low_prob_applicant, loan_amount, loan_term
         )
-        
+
         self.assertLess(probability, 0.3, f"Expected low probability but got: {probability:.3f}")
         self.assertGreaterEqual(probability, 0.0,f"Probability must be >= 0 but got: {probability:.3f}")
 
     def test_high_probability_applicant_01(self):
+        """Test high probability mortgage applicant scenario 01."""
         model_gbn = self.handler.train_and_validate_gbn()
         high_prob_applicant = {
             'age': 35,
@@ -64,17 +68,18 @@ class TestRealisticProbResults(unittest.TestCase):
             'housing_status': 'rent',
             'credit_history': 'excellent'
         }
-        
+
         loan_amount = 1500000
         loan_term = 15
         probability = self.handler.predict_loan_approval(
             model_gbn, high_prob_applicant, loan_amount, loan_term
         )
-        
+
         self.assertGreater(probability, 0.9,f"Expected high probability but got: {probability:.3f}")
         self.assertLessEqual(probability, 1.0,f"Probability must be <= 1 but got: {probability:.3f}")
 
     def test_high_probability_applicant_02(self):
+        """Test high probability mortgage applicant scenario 02."""
         model_gbn = self.handler.train_and_validate_gbn()
         high_prob_applicant = {
             'age': 35,
@@ -103,6 +108,7 @@ class TestRealisticProbResults(unittest.TestCase):
 
 
     def test_high_probability_applicant_03(self):
+        """Test high probability mortgage applicant scenario 03."""
         model_gbn = self.handler.train_and_validate_gbn()
         high_prob_applicant = {
             'age': 35,
@@ -131,6 +137,7 @@ class TestRealisticProbResults(unittest.TestCase):
 
 
     def test_low_probability_applicant_02(self):
+        """Test low probability mortgage applicant scenario 02."""
         model_gbn = self.handler.train_and_validate_gbn()
         high_prob_applicant = {
             'age': 35,
@@ -159,6 +166,7 @@ class TestRealisticProbResults(unittest.TestCase):
 
 
     def test_low_probability_applicant_03(self):
+        """Test low probability mortgage applicant scenario 03."""
         model_gbn = self.handler.train_and_validate_gbn()
         high_prob_applicant = {
             'age': 65,
@@ -186,6 +194,7 @@ class TestRealisticProbResults(unittest.TestCase):
         self.assertLessEqual(probability, 1.0,f"Probability must be <= 1 but got: {probability:.3f}")
 
     def test_low_probability_applicant_04(self):
+        """Test low probability mortgage applicant scenario 04."""
         model_gbn = self.handler.train_and_validate_gbn()
         low_prob_applicant = {
             'age': 18,
@@ -215,6 +224,7 @@ class TestRealisticProbResults(unittest.TestCase):
 
     # Teacher in High School.
     def test_high_probability_applicant_04(self):
+        """Test high probability mortgage applicant scenario 04."""
         model_gbn = self.handler.train_and_validate_gbn()
         high_prob_applicant = {
             'age': 50,
@@ -243,6 +253,7 @@ class TestRealisticProbResults(unittest.TestCase):
 
 
     def test_low_probability_applicant_05(self):
+        """Test low probability mortgage applicant scenario 05."""
         model_gbn = self.handler.train_and_validate_gbn()
         low_prob_applicant = {
             'age': 50,
@@ -270,6 +281,7 @@ class TestRealisticProbResults(unittest.TestCase):
         self.assertGreaterEqual(probability, 0.0, f"Probability must be >= 0 but got: {probability:.3f}")
 
     def test_low_probability_applicant_06(self):
+        """Test low probability mortgage applicant scenario 06."""
         model_gbn = self.handler.train_and_validate_gbn()
         low_prob_applicant = {
             'age': 50,
@@ -297,6 +309,7 @@ class TestRealisticProbResults(unittest.TestCase):
         self.assertGreaterEqual(probability, 0.0,f"Probability must be >= 0 but got: {probability:.3f}")
 
     def test_high_probability_applicant_05(self):
+        """Test high probability mortgage applicant scenario 05."""
         model_gbn = self.handler.train_and_validate_gbn()
         low_prob_applicant = {
             'age': 30,
@@ -325,6 +338,7 @@ class TestRealisticProbResults(unittest.TestCase):
 
 
     def test_high_probability_applicant_06(self):
+        """Test high probability mortgage applicant scenario 06."""
         model_gbn = self.handler.train_and_validate_gbn()
         low_prob_applicant = {
             'age': 30,
@@ -354,6 +368,7 @@ class TestRealisticProbResults(unittest.TestCase):
 
     # Extremely high debt - risky mortgage applicant even with good credit_score.
     def test_low_probability_applicant_07(self):
+        """Test low probability mortgage applicant scenario 07."""
         model_gbn = self.handler.train_and_validate_gbn()
         low_prob_applicant = {
             'age': 35,
@@ -383,6 +398,7 @@ class TestRealisticProbResults(unittest.TestCase):
 
     # Test payment ratio boundaries.
     def test_payment_ratio_29_percent_good_credit(self):
+        """Test mortgage approval with 29% payment ratio and good credit."""
         """Test boundary: 29% payment ratio with good credit."""
         model_gbn = self.handler.train_and_validate_gbn()
         applicant = {
@@ -400,16 +416,17 @@ class TestRealisticProbResults(unittest.TestCase):
             'housing_status': 'rent',
             'credit_history': 'excellent'
         }
-        
+
         loan_amount = 2500000
         loan_term = 20
         probability = self.handler.predict_loan_approval(
             model_gbn, applicant, loan_amount, loan_term
         )
-        
+
         self.assertGreater(probability, 0.6, f"Expected good probability but got: {probability:.3f}")
 
     def test_payment_ratio_50_percent_critical(self):
+        """Test mortgage approval with critical 50% payment ratio."""
         """Test boundary: 50% payment ratio - critical threshold"""
         model_gbn = self.handler.train_and_validate_gbn()
         applicant = {
@@ -427,16 +444,17 @@ class TestRealisticProbResults(unittest.TestCase):
             'housing_status': 'rent',
             'credit_history': 'excellent'
         }
-        
+
         loan_amount = 3500000
         loan_term = 25
         probability = self.handler.predict_loan_approval(
             model_gbn, applicant, loan_amount, loan_term
         )
-        
+
         self.assertGreaterEqual(probability, 0.6, f"Expected moderate probability but got: {probability:.3f}")
 
     def test_payment_ratio_51_percent_should_fail(self):
+        """Test mortgage rejection with excessive 51% payment ratio."""
         """Test boundary: 51% payment ratio - should fail"""
         model_gbn = self.handler.train_and_validate_gbn()
         applicant = {
@@ -454,16 +472,17 @@ class TestRealisticProbResults(unittest.TestCase):
             'housing_status': 'rent',
             'credit_history': 'bad'
         }
-        
+
         loan_amount = 3600000
         loan_term = 25
         probability = self.handler.predict_loan_approval(
             model_gbn, applicant, loan_amount, loan_term
         )
-        
+
         self.assertLessEqual(probability, 0.3, f"Expected low probability but got: {probability:.3f}")
 
     def test_bad_credit_minimal_risk(self):
+        """Test mortgage approval despite bad credit with minimal risk factors."""
         """Test: Bad credit but minimal payment ratio (5%)"""
         model_gbn = self.handler.train_and_validate_gbn()
         applicant = {
@@ -481,16 +500,17 @@ class TestRealisticProbResults(unittest.TestCase):
             'housing_status': 'rent',
             'credit_history': 'bad'
         }
-        
+
         loan_amount = 400000
         loan_term = 20
         probability = self.handler.predict_loan_approval(
             model_gbn, applicant, loan_amount, loan_term
         )
-        
+
         self.assertLessEqual(probability, 0.35, f"Bad credit should limit probability: {probability:.3f}")
 
     def test_CLAUDE_government_vs_freelancer_same_profile(self):
+        """Test government employee vs freelancer with identical profiles."""
         """Test: Government employee vs freelancer with identical profiles"""
         model_gbn = self.handler.train_and_validate_gbn()
         base_profile = {
@@ -506,33 +526,34 @@ class TestRealisticProbResults(unittest.TestCase):
             'housing_status': 'rent',
             'credit_history': 'excellent'
         }
-        
+
         loan_amount = 4000000
         loan_term = 15
-        
+
         # Government employee
         gov_applicant = base_profile.copy()
         gov_applicant['government_employee'] = 'yes'
         gov_applicant['employment_type'] = 'permanent'
-        
+
         gov_probability = self.handler.predict_loan_approval(
             model_gbn, gov_applicant, loan_amount, loan_term
         )
-        
+
         # Freelancer
         freelancer_applicant = base_profile.copy()
         freelancer_applicant['government_employee'] = 'no'
         freelancer_applicant['employment_type'] = 'freelancer'
         freelancer_applicant['size_of_company'] = 1
-        
+
         freelancer_probability = self.handler.predict_loan_approval(
             model_gbn, freelancer_applicant, loan_amount, loan_term
         )
-        
+
         self.assertGreater(gov_probability, freelancer_probability, f"Government employee ({gov_probability:.3f}) should have higher probability than freelancer ({freelancer_probability:.3f})")
 
     # Income boundary tests
     def test_average_salary_boundary(self):
+        """Test mortgage approval at average salary boundary."""
         """Test: Exactly average salary (35,000)"""
         model_gbn = self.handler.train_and_validate_gbn()
         applicant = {
@@ -550,16 +571,17 @@ class TestRealisticProbResults(unittest.TestCase):
             'housing_status': 'rent',
             'credit_history': 'excellent'
         }
-        
+
         loan_amount = 1500000
         loan_term = 20
         probability = self.handler.predict_loan_approval(
             model_gbn, applicant, loan_amount, loan_term
         )
-        
+
         self.assertGreater(probability, 0.65, f"Average salary should yield decent probability: {probability:.3f}")
 
     def test_just_below_average_salary(self):
+        """Test mortgage approval just below average salary."""
         """Test: Just below average salary (34,999)"""
         model_gbn = self.handler.train_and_validate_gbn()
         applicant = {
@@ -577,16 +599,17 @@ class TestRealisticProbResults(unittest.TestCase):
             'housing_status': 'rent',
             'credit_history': 'excellent'
         }
-        
+
         loan_amount = 1500000
         loan_term = 20
         probability = self.handler.predict_loan_approval(
             model_gbn, applicant, loan_amount, loan_term
         )
-        
+
         self.assertGreater(probability, 0.65, f"Just below average should still be reasonable: {probability:.3f}")
 
     def test_minimum_living_wage(self):
+        """Test mortgage approval at minimum living wage."""
         """Test: Minimum living wage (15,000) - very low income boundary"""
         model_gbn = self.handler.train_and_validate_gbn()
         applicant = {
@@ -604,16 +627,17 @@ class TestRealisticProbResults(unittest.TestCase):
             'housing_status': 'rent',
             'credit_history': 'excellent'
         }
-        
+
         loan_amount = 2000000
         loan_term = 30
         probability = self.handler.predict_loan_approval(
             model_gbn, applicant, loan_amount, loan_term
         )
-        
+
         self.assertLessEqual(probability, 0.2, f"Very low income should have low probability: {probability:.3f}")
 
     def test_minimum_living_wage_02(self):
+        """Test mortgage approval at minimum living wage scenario 02."""
         """Test: Minimum living wage (15,000) - very low income boundary"""
         model_gbn = self.handler.train_and_validate_gbn()
         applicant = {
@@ -642,6 +666,7 @@ class TestRealisticProbResults(unittest.TestCase):
 
 
     def test_minimum_living_wage_02(self):
+        """Test mortgage approval at minimum living wage scenario 02."""
         """Test: Minimum living wage (15,000) - very low income boundary"""
         model_gbn = self.handler.train_and_validate_gbn()
         applicant = {
