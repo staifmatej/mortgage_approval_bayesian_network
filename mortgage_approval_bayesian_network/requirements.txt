@@ -10,7 +10,10 @@ scipy==1.15.2
 # Diagram photo.
 matplotlib==3.10.1
 seaborn==0.13.2
-pygraphviz==1.14
+
+# Diagram photo from pgmpy.
+# pygraphviz installation: brew install graphviz (on MacOS) / choco install graphviz (on Windows) / sudo apt-get update && sudo apt-get install -y graphviz graphviz-dev (on Linux)
+# pygraphviz==1.14
 
 # Progress bar, table & color.
 colorama==0.4.6
