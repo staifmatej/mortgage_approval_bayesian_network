@@ -14,7 +14,6 @@ from utils.error_print import print_error_handling, print_invalid_input
 from utils.constants import S_RED, E_RED, S_GREEN, E_GREEN, S_YELLOW, E_YELLOW, S_CYAN, E_CYAN, S_BOLD, E_BOLD
 from utils.print_press_enter_to_continue import print_press_enter_to_continue
 from visualize_network import create_bayesian_network_visualization
-from data_generation_realistic import calculate_monthly_payment
 
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 
@@ -44,7 +43,9 @@ class InputHandler():
                 print_error_handling("Error loading input")
             try:
                 user_input = input(prompt).strip().lower()
-            except (KeyboardInterrupt, EOFError, ValueError) as e:
+            except EOFError:
+                print_invalid_input(f"{e}")
+            except (KeyboardInterrupt, ValueError) as e:
                 print_invalid_input(f"{e}. [{i+1}/{max_attempts}]")
                 continue
 
@@ -404,41 +405,10 @@ class InputHandler():
                         ratio_payment = monthly_payment / 1e8
 
 
-                    # Adjustments based on key factors
-                    adjustment_factor = 1.0
-
-                    # Bonusy pro excellent profily
-                    if (mortgage_applicant_data['credit_history'] == 'excellent' and
-                        mortgage_applicant_data['government_employee'] == 'yes' and
-                        ratio_payment <= 0.6):
-                        adjustment_factor *= 8.0
-                    elif (mortgage_applicant_data['credit_history'] == 'excellent' and
-                          ratio_payment <= 0.7):
-                        adjustment_factor *= 6.0
-
-                    # Bonusy pro fair profily
-                    elif (mortgage_applicant_data['credit_history'] == 'fair' and
-                          mortgage_applicant_data['government_employee'] == 'yes' and
-                          ratio_payment <= 0.3):
-                        adjustment_factor *= 4.0
-                    elif (mortgage_applicant_data['credit_history'] == 'fair' and
-                          ratio_payment <= 0.2):
-                        adjustment_factor *= 3.0
-
-                    # Penalizace pro vysoké payment ratios nebo špatnou bonitu
-                    if ratio_payment > 1.0:
-                        adjustment_factor *= 0.1
-                    elif ratio_payment > 0.6:
-                        adjustment_factor *= 0.4
-                    elif mortgage_applicant_data['credit_history'] == 'bad':
-                        adjustment_factor *= 0.2
-
-                    # Penalizace pro splácení po důchodu
-                    mortgage_end_age = mortgage_applicant_data['age'] + loan_term
-                    if mortgage_end_age > self.retirement_age:
-                        years_after_retirement = mortgage_end_age - self.retirement_age
-                        # Každý rok po důchodu penalizuje o 20%
-                        adjustment_factor *= (0.8 ** years_after_retirement)
+                    # Apply adjustments based on key factors
+                    adjustment_factor = self._calculate_adjustment_factor(
+                        mortgage_applicant_data, ratio_payment, loan_term
+                    )
 
                     # Aplikovat adjustment
                     approval_prob *= adjustment_factor
@@ -456,6 +426,74 @@ class InputHandler():
             print_error_handling(f"Prediction failed: {e}")
             traceback.print_exc()
             return 0.0
+
+    def _calculate_adjustment_factor(self, mortgage_applicant_data, ratio_payment, loan_term):
+        """Calculate adjustment factor based on applicant profile and payment ratio."""
+        adjustment_factor = 1.0
+
+        # Bonuses for excellent profiles
+        adjustment_factor *= self._get_excellent_credit_bonus(
+            mortgage_applicant_data, ratio_payment
+        )
+
+        # Bonuses for fair profiles
+        adjustment_factor *= self._get_fair_credit_bonus(
+            mortgage_applicant_data, ratio_payment
+        )
+
+        # Penalties for high payment ratios or bad credit
+        adjustment_factor *= self._get_risk_penalty(
+            mortgage_applicant_data, ratio_payment
+        )
+
+        # Penalty for retirement age
+        adjustment_factor *= self._get_retirement_penalty(
+            mortgage_applicant_data, loan_term
+        )
+
+        return adjustment_factor
+
+    def _get_excellent_credit_bonus(self, mortgage_applicant_data, ratio_payment):
+        """Calculate bonus multiplier for excellent credit profiles."""
+        if mortgage_applicant_data['credit_history'] != 'excellent':
+            return 1.0
+
+        if (mortgage_applicant_data['government_employee'] == 'yes' and
+            ratio_payment <= 0.6):
+            return 8.0
+        if ratio_payment <= 0.7:
+            return 6.0
+        return 1.0
+
+    def _get_fair_credit_bonus(self, mortgage_applicant_data, ratio_payment):
+        """Calculate bonus multiplier for fair credit profiles."""
+        if mortgage_applicant_data['credit_history'] != 'fair':
+            return 1.0
+
+        if (mortgage_applicant_data['government_employee'] == 'yes' and
+            ratio_payment <= 0.3):
+            return 4.0
+        if ratio_payment <= 0.2:
+            return 3.0
+        return 1.0
+
+    def _get_risk_penalty(self, mortgage_applicant_data, ratio_payment):
+        """Calculate penalty multiplier for high-risk factors."""
+        if ratio_payment > 1.0:
+            return 0.1
+        if ratio_payment > 0.6:
+            return 0.4
+        if mortgage_applicant_data['credit_history'] == 'bad':
+            return 0.2
+        return 1.0
+
+    def _get_retirement_penalty(self, mortgage_applicant_data, loan_term):
+        """Calculate penalty multiplier for loans extending past retirement."""
+        mortgage_end_age = mortgage_applicant_data['age'] + loan_term
+        if mortgage_end_age > self.retirement_age:
+            years_after_retirement = mortgage_end_age - self.retirement_age
+            return 0.8 ** years_after_retirement
+        return 1.0
 
     def print_mortgage_applicant_info(self, mortgage_applicant_data, loan_amount, loan_term):
         """Display formatted mortgage application details in tabular format."""

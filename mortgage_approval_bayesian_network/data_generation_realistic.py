@@ -8,7 +8,6 @@ import math
 import warnings
 import pandas as pd
 import numpy as np
-from scipy.stats import beta
 
 from utils.constants import S_RED, E_RED
 from utils.error_print import print_error_handling, print_warning_handling

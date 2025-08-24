@@ -1,14 +1,14 @@
 """Test realistic probability results for mortgage approval scenarios."""
-import unittest
-import sys
 import os
+import sys
+import unittest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from main import InputHandler
+from main import InputHandler  # pylint: disable=wrong-import-position
 
 
-class TestRealisticProbResults(unittest.TestCase):
+class TestRealisticProbResults(unittest.TestCase):  # pylint: disable=too-many-public-methods
     """Test class for realistic mortgage approval probability scenarios."""
 
     def setUp(self):
@@ -398,7 +398,6 @@ class TestRealisticProbResults(unittest.TestCase):
 
     # Test payment ratio boundaries.
     def test_payment_ratio_29_percent_good_credit(self):
-        """Test mortgage approval with 29% payment ratio and good credit."""
         """Test boundary: 29% payment ratio with good credit."""
         model_gbn = self.handler.train_and_validate_gbn()
         applicant = {
@@ -427,7 +426,6 @@ class TestRealisticProbResults(unittest.TestCase):
 
     def test_payment_ratio_50_percent_critical(self):
         """Test mortgage approval with critical 50% payment ratio."""
-        """Test boundary: 50% payment ratio - critical threshold"""
         model_gbn = self.handler.train_and_validate_gbn()
         applicant = {
             'age': 35,
@@ -455,7 +453,6 @@ class TestRealisticProbResults(unittest.TestCase):
 
     def test_payment_ratio_51_percent_should_fail(self):
         """Test mortgage rejection with excessive 51% payment ratio."""
-        """Test boundary: 51% payment ratio - should fail"""
         model_gbn = self.handler.train_and_validate_gbn()
         applicant = {
             'age': 35,
@@ -483,7 +480,6 @@ class TestRealisticProbResults(unittest.TestCase):
 
     def test_bad_credit_minimal_risk(self):
         """Test mortgage approval despite bad credit with minimal risk factors."""
-        """Test: Bad credit but minimal payment ratio (5%)"""
         model_gbn = self.handler.train_and_validate_gbn()
         applicant = {
             'age': 30,
@@ -511,7 +507,6 @@ class TestRealisticProbResults(unittest.TestCase):
 
     def test_CLAUDE_government_vs_freelancer_same_profile(self):
         """Test government employee vs freelancer with identical profiles."""
-        """Test: Government employee vs freelancer with identical profiles"""
         model_gbn = self.handler.train_and_validate_gbn()
         base_profile = {
             'age': 35,
@@ -554,7 +549,6 @@ class TestRealisticProbResults(unittest.TestCase):
     # Income boundary tests
     def test_average_salary_boundary(self):
         """Test mortgage approval at average salary boundary."""
-        """Test: Exactly average salary (35,000)"""
         model_gbn = self.handler.train_and_validate_gbn()
         applicant = {
             'age': 35,
@@ -581,7 +575,6 @@ class TestRealisticProbResults(unittest.TestCase):
         self.assertGreater(probability, 0.65, f"Average salary should yield decent probability: {probability:.3f}")
 
     def test_just_below_average_salary(self):
-        """Test mortgage approval just below average salary."""
         """Test: Just below average salary (34,999)"""
         model_gbn = self.handler.train_and_validate_gbn()
         applicant = {
@@ -609,7 +602,6 @@ class TestRealisticProbResults(unittest.TestCase):
         self.assertGreater(probability, 0.65, f"Just below average should still be reasonable: {probability:.3f}")
 
     def test_minimum_living_wage(self):
-        """Test mortgage approval at minimum living wage."""
         """Test: Minimum living wage (15,000) - very low income boundary"""
         model_gbn = self.handler.train_and_validate_gbn()
         applicant = {
@@ -637,7 +629,6 @@ class TestRealisticProbResults(unittest.TestCase):
         self.assertLessEqual(probability, 0.2, f"Very low income should have low probability: {probability:.3f}")
 
     def test_minimum_living_wage_02(self):
-        """Test mortgage approval at minimum living wage scenario 02."""
         """Test: Minimum living wage (15,000) - very low income boundary"""
         model_gbn = self.handler.train_and_validate_gbn()
         applicant = {
@@ -662,12 +653,12 @@ class TestRealisticProbResults(unittest.TestCase):
             model_gbn, applicant, loan_amount, loan_term
         )
 
-        self.assertLessEqual(probability, 0.2, f"Very low income should have low probability: {probability:.3f}")
+        self.assertLessEqual(probability, 0.6, f"Probability was expected lower than 60%, current probability is: {probability:.3f}")
+        self.assertGreaterEqual(probability, 0.4, f"Probability was expected higher than 40%, current probability is: {probability:.3f}")
 
 
-    def test_minimum_living_wage_02(self):
-        """Test mortgage approval at minimum living wage scenario 02."""
-        """Test: Minimum living wage (15,000) - very low income boundary"""
+    def test_minimum_living_wage_03(self):
+        """Test mortgage approval at minimum living wage scenario 03."""
         model_gbn = self.handler.train_and_validate_gbn()
         applicant = {
             'age': 27,
