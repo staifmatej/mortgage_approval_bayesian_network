@@ -86,8 +86,6 @@ class GaussianBayesianNetwork():
         except ImportError:
             if print_info is True:
                 print(f"\n{S_CYAN}Note{E_CYAN}: 'pygraphviz' python library is not available, skipping diagram generation.")
-        except (KeyboardInterrupt, EOFError):
-            return
 
 
     def handle_datasets_from_training(self):
