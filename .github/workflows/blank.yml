@@ -23,7 +23,8 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install System dependencies
+    - name: Install System dependencies (Ubuntu)
+      if: runner.os == 'Linux'
       working-directory: ./mortgage_approval_bayesian_network
       run: |
         sudo apt-get update

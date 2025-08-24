@@ -10,7 +10,6 @@ scipy==1.15.2
 # Diagram photo.
 matplotlib==3.10.1
 seaborn==0.13.2
-pygraphviz==1.14
 
 # Progress bar, table & color.
 colorama==0.4.6
