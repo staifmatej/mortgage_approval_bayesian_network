@@ -439,7 +439,7 @@ class DataGenerator:
             df.loc[
                 df["ratio_payment_to_income"] > 1.0, 
                 "loan_approved"
-            ] *= 0.001  # Extrémně neudržitelné
+            ] *= 0.001
             
             df.loc[
                 df["ratio_payment_to_income"] > 0.7, 
@@ -449,7 +449,7 @@ class DataGenerator:
             df.loc[
                 df["ratio_payment_to_income"] > 0.5, 
                 "loan_approved"
-            ] *= 0.001  # Velmi tvrdá penalizace nad 50%
+            ] *= 0.001
 
         adjust_values_to_spread_more_towards_edges02()
 
@@ -478,7 +478,16 @@ class DataGenerator:
 
 
         df["loan_approved"] = np.round(df["loan_approved"], 5)
-        #df["loan_approved"] = df["loan_approved"].clip(0, 1)
+
+        # Check for values outside 0-1 range and print error message.
+        if (df["loan_approved"] < 0).any() or (df["loan_approved"] > 1).any():
+            min_val = df["loan_approved"].min()
+            max_val = df["loan_approved"].max()
+            count_below = (df["loan_approved"] < 0).sum()
+            count_above = (df["loan_approved"] > 1).sum()
+            print_error_handling(f"Invalid loan_approved values found: {count_below} below 0, {count_above} above 1. Range: [{min_val:.5f}, {max_val:.5f}]")
+
+        df["loan_approved"] = df["loan_approved"].clip(0, 1)
 
         if pbar is not None:
             pbar.update(1)

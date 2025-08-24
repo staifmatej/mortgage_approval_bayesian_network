@@ -416,6 +416,15 @@ class InputHandler():
                           ratio_payment <= 0.7):
                         adjustment_factor *= 6.0
                     
+                    # Bonusy pro good profily
+                    elif (mortgage_applicant_data['credit_history'] == 'good' and 
+                          mortgage_applicant_data['government_employee'] == 'yes' and 
+                          ratio_payment <= 0.3):
+                        adjustment_factor *= 4.0
+                    elif (mortgage_applicant_data['credit_history'] == 'good' and 
+                          ratio_payment <= 0.2):
+                        adjustment_factor *= 3.0
+                    
                     # Penalizace pro vysoké payment ratios nebo špatnou bonitu
                     if ratio_payment > 1.0:
                         adjustment_factor *= 0.1
