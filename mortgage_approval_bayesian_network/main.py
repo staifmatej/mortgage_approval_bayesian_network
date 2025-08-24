@@ -79,7 +79,7 @@ class InputHandler():
                     return default_val
 
                 value = data_type(user_input)
-                if data_type == float:
+                if data_type == int:
                     value = np.round(value, 0)
 
                 if min_val is not None and value < min_val:

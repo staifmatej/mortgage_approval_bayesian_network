@@ -185,8 +185,8 @@ class TestInputHandler(unittest.TestCase):
 
                     # This would normally call set_up_all
                     self.handler.collect_main_user_info()
-                    # validate_input_numerical rounds float values to 0 decimal places
-                    self.assertEqual(float(self.handler.interest_rate), 0.0)
+                    # validate_input_numerical no longer rounds float values
+                    self.assertEqual(float(self.handler.interest_rate), 0.05)
                     self.assertEqual(float(self.handler.avg_salary), 40000.0)
 
     def test_error_handling_robustness(self):
