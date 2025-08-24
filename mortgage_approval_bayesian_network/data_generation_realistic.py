@@ -23,6 +23,19 @@ def encode_age_group(age):
     age_old = 1 if age >= 60 else 0
     return age_young, age_prime, age_senior, age_old
 
+def calculate_monthly_payment(interest_rate, loan_term, loan_amount):
+    monthly_interest_rate_float = interest_rate / 100 / 12
+    num_of_monthly_payments = loan_term * 12
+
+    # Loan with 0% annual interest.
+    if monthly_interest_rate_float == 0:
+        return loan_amount / num_of_monthly_payments
+
+    # Calculation of monthly payment with monthly interest rate 'r' as a decimal.
+    return loan_amount * (monthly_interest_rate_float * (
+            1 + monthly_interest_rate_float) ** num_of_monthly_payments) / (
+            (1 + monthly_interest_rate_float) ** num_of_monthly_payments - 1)
+
 class DataGenerator:
     """Generates synthetic mortgage application data with realistic financial distributions and relationships."""
     def __init__(self, avg_salary, interest_rate, num_records, retirement_age=65):
@@ -374,50 +387,98 @@ class DataGenerator:
         df["defaulted"] = df["defaulted"].clip(0, 2)
 
         max_defaulted = max(df["defaulted"])
-        df["loan_approved"] = max_defaulted
-        df["loan_approved"] = df["loan_approved"] - df["defaulted"]
+        df["loan_approved"] = max(1, max_defaulted * 100)
+        df["loan_approved"] = df["loan_approved"] - df["defaulted"] * 10
 
-        df.loc[df["credit_history"] == "excellent", "loan_approved"] *= 1.1
-        df.loc[df["credit_history"] == "good", "loan_approved"] *= 1.05
-        df.loc[df["credit_history"] == "fair", "loan_approved"] *= 1.01
-        df.loc[df["credit_history"] == "bad", "loan_approved"] *= 0.7
+        df.loc[df["credit_history"] == "excellent", "loan_approved"] *= 2
+        df.loc[df["credit_history"] == "good", "loan_approved"] *= 1.5
+        df.loc[df["credit_history"] == "fair", "loan_approved"] *= 1
+        df.loc[df["credit_history"] == "bad", "loan_approved"] *= 0.75
+
         if pbar is not None:
             pbar.update(1)
 
-        df["loan_approved"] -= df["ratio_payment_to_income"]*2
-        df["loan_approved"] -= df["ratio_debt_net_worth"]
+        df["loan_approved"] -= df["ratio_payment_to_income"] * 90
+        df["loan_approved"] -= df["ratio_debt_net_worth"] * 50
 
-        # Penalize loans where monthly payment >= monthly income
-        df.loc[df["monthly_payment"] >= df["reported_monthly_income"] * 0.99, "loan_approved"] *= int(1/2)
-        df.loc[df["monthly_payment"] >= df["reported_monthly_income"], "loan_approved"] *= int(1/4)
-        df.loc[df["monthly_payment"] >= df["reported_monthly_income"] * 1.1, "loan_approved"] *= int(1/16)
-        df.loc[df["monthly_payment"] >= df["reported_monthly_income"] * 1.2, "loan_approved"] *= int(1/32)
-        df.loc[df["monthly_payment"] >= df["reported_monthly_income"] * 1.5, "loan_approved"] *= int(1/64)
-        df.loc[df["monthly_payment"] >= df["reported_monthly_income"] * 1.75, "loan_approved"] *= int(1/256)
-        df.loc[df["monthly_payment"] >= df["reported_monthly_income"] * 2, "loan_approved"] *= int(1/8192)
+        for years in range(0, int(1e6), 5):
+            mask = df["years_of_mortgage_after_retirement"] > years
+            if not mask.any():
+                break
+            if years == 0:
+                df.loc[mask, "loan_approved"] *= 0.75
+            if years != 0:
+                df.loc[mask, "loan_approved"] *= 0.5
 
-        df.loc[df["years_of_mortgage_after_retirement"] >= 0, "loan_approved"] *= int(1/2)
-        df.loc[df["years_of_mortgage_after_retirement"] >= 5, "loan_approved"] *= int(1/1024)
-        df.loc[df["years_of_mortgage_after_retirement"] >= 10, "loan_approved"] *= int(1/8192)
-
-
-        def adjust_values_to_spread_more_towards_edges(strength = 0.5):
-            min_val = df["loan_approved"].min()
-            max_val = df["loan_approved"].max()
-            normalized = (df["loan_approved"] - min_val) / (max_val - min_val)
+        def adjust_values_to_spread_more_towards_edges02():
+            df.loc[
+                (df["credit_history"] == "excellent") & 
+                (df["government_employee"] == 1) & 
+                (df["ratio_payment_to_income"] <= 0.6), 
+                "loan_approved"
+            ] *= 0.99
             
-            center_distance = np.abs(normalized - 0.5)
-            push_factor = 1 + strength * (0.5 - center_distance)
-            transformed = 0.5 + (normalized - 0.5) * push_factor
-            transformed = np.clip(transformed, 0, 1)
+            df.loc[
+                (df["credit_history"] == "excellent") & 
+                (df["ratio_payment_to_income"] <= 0.7), 
+                "loan_approved"
+            ] *= 0.9
             
-            df["loan_approved"] = transformed * (max_val - min_val) + min_val
+            df.loc[
+                (df["credit_history"] == "good") & 
+                (df["ratio_payment_to_income"] <= 0.5), 
+                "loan_approved"
+            ] *= 0.8
+            
+            # Špatné profily - od nejhorších k mírnějším
+            df.loc[
+                df["credit_history"] == "bad", 
+                "loan_approved"
+            ] *= 0.02
+            
+            df.loc[
+                df["ratio_payment_to_income"] > 1.0, 
+                "loan_approved"
+            ] *= 0.001  # Extrémně neudržitelné
+            
+            df.loc[
+                df["ratio_payment_to_income"] > 0.7, 
+                "loan_approved"
+            ] *= 0.01
+            
+            df.loc[
+                df["ratio_payment_to_income"] > 0.5, 
+                "loan_approved"
+            ] *= 0.001  # Velmi tvrdá penalizace nad 50%
 
+        adjust_values_to_spread_more_towards_edges02()
 
-        adjust_values_to_spread_more_towards_edges()
+        # Finální normalizace na 0-1 rozsah (zachovává interpretovatelnost)
+        df["loan_approved"] = (df["loan_approved"] - df["loan_approved"].min()) / (df["loan_approved"].max() - df["loan_approved"].min())
+
+        # FINÁLNÍ pevné hodnoty PO normalizaci (tohle přepíše vše ostatní)
+        df.loc[
+            (df["credit_history"] == "excellent") & 
+            (df["government_employee"] == 1) & 
+            (df["ratio_payment_to_income"] <= 0.6), 
+            "loan_approved"
+        ] *= 0.95
+        
+        df.loc[
+            (df["credit_history"] == "excellent") & 
+            (df["ratio_payment_to_income"] <= 0.7), 
+            "loan_approved"
+        ] *= 0.85
+        
+        df.loc[
+            (df["credit_history"] == "bad") | 
+            (df["ratio_payment_to_income"] > 0.5), 
+            "loan_approved"
+        ] *= 0.05
+
 
         df["loan_approved"] = np.round(df["loan_approved"], 5)
-        df["loan_approved"] = df["loan_approved"].clip(0, 1)
+        #df["loan_approved"] = df["loan_approved"].clip(0, 1)
 
         if pbar is not None:
             pbar.update(1)
@@ -815,12 +876,8 @@ class DataGenerator:
 
             def generate_loan_amount():
                 min_loan_amount = 100000 # limited as an input metric in main.py
+                max_monthly_payment = reported_monthly_income * 0.45
                 
-                # Realistický přístup: půjčka založená na schopnosti splácet
-                # Typické DTI (debt-to-income) ratio je 20-40% příjmu na splátky
-                max_monthly_payment = reported_monthly_income * 0.35  # max 35% příjmu na splátku
-                
-                # Vypočítat max loan_amount na základě max_monthly_payment
                 monthly_interest_rate = self.interest_rate / 12
                 loan_term_months = loan_term * 12
                 
@@ -829,7 +886,6 @@ class DataGenerator:
                 else:
                     max_loan_from_income = max_monthly_payment * ((1 + monthly_interest_rate) ** loan_term_months - 1) / (monthly_interest_rate * (1 + monthly_interest_rate) ** loan_term_months)
                 
-                # Přidat náhodnost ±50% pro různorodost
                 randomness = self.generate_random_float_from_0_to_1() * 1.5 + 0.5  # 0.5 - 2.0
                 loan_amount = max_loan_from_income * randomness
                 
@@ -842,17 +898,7 @@ class DataGenerator:
             loan_amount = generate_loan_amount()
 
             def generate_monthly_payment():
-                monthly_interest_rate_float = self.interest_rate / 100 / 12
-                num_of_monthly_payments = loan_term * 12
-
-                # Loan with 0% annual interest.
-                if monthly_interest_rate_float == 0:
-                    return loan_amount / num_of_monthly_payments
-
-                # Calculation of monthly payment with monthly interest rate 'r' as a decimal.
-                return loan_amount * (monthly_interest_rate_float * (
-                            1 + monthly_interest_rate_float) ** num_of_monthly_payments) / (
-                            (1 + monthly_interest_rate_float) ** num_of_monthly_payments - 1)
+                return calculate_monthly_payment(self.interest_rate, loan_term, loan_amount)
 
             monthly_payment = generate_monthly_payment()
 

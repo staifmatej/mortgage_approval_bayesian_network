@@ -14,6 +14,7 @@ from utils.error_print import print_error_handling, print_invalid_input
 from utils.constants import S_RED, E_RED, S_GREEN, E_GREEN, S_YELLOW, E_YELLOW, S_CYAN, E_CYAN, S_BOLD, E_BOLD
 from utils.print_press_enter_to_continue import print_press_enter_to_continue
 from visualize_network import create_bayesian_network_visualization
+from data_generation_realistic import calculate_monthly_payment
 
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 
@@ -396,6 +397,46 @@ class InputHandler():
                     approval_prob = mean_values[0][idx]  # First row, idx column
                     approval_prob = float(approval_prob)
                     approval_prob = max(0, min(1, approval_prob))
+                    
+                    if mortgage_applicant_data['reported_monthly_income'] != 0:
+                        ratio_payment = monthly_payment / mortgage_applicant_data['reported_monthly_income']
+                    else:
+                        ratio_payment = monthly_payment / 1e8
+
+
+                    # Adjustments based on key factors
+                    adjustment_factor = 1.0
+                    
+                    # Bonusy pro excellent profily
+                    if (mortgage_applicant_data['credit_history'] == 'excellent' and 
+                        mortgage_applicant_data['government_employee'] == 'yes' and 
+                        ratio_payment <= 0.6):
+                        adjustment_factor *= 8.0
+                    elif (mortgage_applicant_data['credit_history'] == 'excellent' and 
+                          ratio_payment <= 0.7):
+                        adjustment_factor *= 6.0
+                    
+                    # Penalizace pro vysoké payment ratios nebo špatnou bonitu
+                    if ratio_payment > 1.0:
+                        adjustment_factor *= 0.1
+                    elif ratio_payment > 0.6:
+                        adjustment_factor *= 0.4
+                    elif mortgage_applicant_data['credit_history'] == 'bad':
+                        adjustment_factor *= 0.2
+                    
+                    # Penalizace pro splácení po důchodu
+                    mortgage_end_age = mortgage_applicant_data['age'] + loan_term
+                    if mortgage_end_age > self.retirement_age:
+                        years_after_retirement = mortgage_end_age - self.retirement_age
+                        # Každý rok po důchodu penalizuje o 20%
+                        adjustment_factor *= (0.8 ** years_after_retirement)
+                    
+                    # Aplikovat adjustment
+                    approval_prob *= adjustment_factor
+                    
+                    # Normalizovat na 0-1
+                    approval_prob = min(max(approval_prob, 0.0), 1.0)
+                    
                     return approval_prob
                 print_error_handling("loan_approved not found in predictions.")
                 return 0.0
@@ -465,16 +506,28 @@ class InputHandler():
         else:
             approval_prob = self.predict_loan_approval(model_gbn, mortgage_applicant_data, loan_amount, loan_term)
 
-        try:
-            mortgage_age_after_end = loan_term + mortgage_applicant_data["age"]
-            for i in range(int(1e6)):
-                if i % 5 == 0:
-                    if mortgage_age_after_end > (self.retirement_age + i):
-                        approval_prob = approval_prob * 0.75
-                    else:
-                        break
-        except KeyError:
-            print_error_handling("Missing + required 'age' field in applicant data")
+        # try:
+        #     mortgage_age_after_end = loan_term + mortgage_applicant_data["age"]
+        #     for i in range(int(1e6)):
+        #         if i % 5 == 0:
+        #             if mortgage_age_after_end > (self.retirement_age + i):
+        #                 approval_prob = approval_prob * 0.75
+        #             else:
+        #                 break
+        # except KeyError:
+        #     print_error_handling("Missing + required 'age' field in applicant data")
+
+        # try:
+        #     monthly_payment = calculate_monthly_payment(self.interest_rate, loan_term, loan_amount)
+        #     total_stable_income = mortgage_applicant_data["reported_monthly_income"]
+        #     for i in range(int(1e6)):
+        #         if i % 5 == 0:
+        #             if 2 > (total_stable_income - self.avg_salary * 0.1 + i * (self.avg_salary / 8) ):
+        #                 approval_prob = approval_prob * 0.5
+        #             else:
+        #                 break
+        # except KeyError as e:
+        #     print_error_handling(f"{e}")
 
         if approval_prob > 0.65:
             print(f"\nMortgage approval probability: {S_GREEN}{approval_prob:.1%}{E_GREEN}")
