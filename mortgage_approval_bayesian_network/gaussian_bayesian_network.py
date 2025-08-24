@@ -77,11 +77,17 @@ class GaussianBayesianNetwork():
 
     def save_diagram_of_gbn(self, print_info=False):
         """Save Bayesian Network structure diagram to PNG file using Graphviz."""
-        if self.save_diagram:
-            viz = self.loan_approval_model.to_graphviz()
-            viz.draw('diagram_photos/bayesian_network_default.png', prog='dot')
+        try:
+            if self.save_diagram:
+                viz = self.loan_approval_model.to_graphviz()
+                viz.draw('diagram_photos/bayesian_network_default.png', prog='dot')
+                if print_info is True:
+                    print(f"\nSimple built-in Bayesian Network visualization saved to {S_CYAN}diagram_photos/bayesian_network_default.png{E_CYAN}")
+        except ImportError:
             if print_info is True:
-                print(f"\nSimple built-in Bayesian Network visualization saved to {S_CYAN}diagram_photos/bayesian_network_default.png{E_CYAN}")
+                print(f"\n{S_CYAN}Note{E_CYAN}: 'pygraphviz' python library is not available, skipping diagram generation.")
+        except (KeyboardInterrupt, EOFError):
+            return
 
 
     def handle_datasets_from_training(self):
