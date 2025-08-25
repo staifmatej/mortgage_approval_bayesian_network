@@ -1,10 +1,10 @@
 === MORTGAGE APPROVAL MODEL EVALUATION ===
-Dataset Size: 99982
+Dataset Size: 4993
 Evaluation Sample: 1000
-Accuracy: 0.953
-Precision: 0.748
-Recall: 0.852
-F1-Score: 0.797
-ROC AUC: 0.500
+Accuracy: 0.936
+Precision: 0.617
+Recall: 0.897
+F1-Score: 0.731
+ROC AUC: 0.964
 Cross-Validation Mean: 1.000
 Cross-Validation Std: 0.000

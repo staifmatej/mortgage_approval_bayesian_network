@@ -19,15 +19,13 @@ class TestDataGenerator:
         self.base_avg_salary = base_avg_salary
         self.base_interest_rate = base_interest_rate
         
-    def generate_stress_test_data(self, num_records=5000, scenario="economic_downturn"):
+    def generate_stress_test_data(self, num_records=100000, scenario="economic_downturn"):
         """Generate test data under different economic scenarios."""
-        
-        print(f"{S_CYAN}Generating independent test dataset: {scenario}{E_CYAN}")
-        
+
         if scenario == "economic_downturn":
             # Economic recession parameters
-            test_avg_salary = self.base_avg_salary * 0.85  # 15% lower salaries
-            test_interest_rate = self.base_interest_rate * 1.3  # 30% higher rates
+            test_avg_salary = self.base_avg_salary * 0.85
+            test_interest_rate = self.base_interest_rate * 1.3
             
         elif scenario == "economic_boom": 
             # Economic growth parameters
@@ -59,17 +57,19 @@ class TestDataGenerator:
             num_records=num_records
         )
         
-        # Create test dataset filename
+        # Create test dataset filename  
+        import os
+        os.makedirs("evaluation", exist_ok=True)
         test_csv_path = f"evaluation/test_data_{scenario}.csv"
         
         # Generate data silently
         original_csv_path = test_generator.csv_path
         test_generator.csv_path = test_csv_path
         
-        test_generator.generate_realistic_data(verbose=False)
-        test_generator.remove_wrong_rows(verbose=False, custom_csv_path=test_csv_path)
+        test_generator.generate_realistic_data(True)  # True = save to file
+        test_generator.remove_wrong_rows(False, None)  # False = no verbose, None = no progress bar
         
-        print(f"{S_GREEN}✓ Generated {num_records:,} test records: {test_csv_path}{E_GREEN}")
+        print(f"{S_GREEN}☑ Generated {num_records:,} test records: {test_csv_path}{E_GREEN}")
         
         return test_csv_path, {
             'scenario': scenario,
@@ -94,9 +94,8 @@ class TestDataGenerator:
                 'parameters': params
             }
             
-        print(f"{S_GREEN}✓ Generated {len(scenarios)} independent test datasets{E_GREEN}")
+        print(f"{S_GREEN}☑ Generated {len(scenarios)} independent test datasets{E_GREEN}")
         return results
-        
     def compare_distributions(self, training_csv, test_csv):
         """Compare key distributions between training and test data."""
         

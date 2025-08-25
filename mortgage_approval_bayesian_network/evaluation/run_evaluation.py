@@ -14,10 +14,12 @@ def main():
     """Demonstrate quantitative evaluation of the mortgage approval model."""
 
     try:
-        # Initialize evaluator
+        # Initialize evaluator with independent test data
         evaluator = ModelEvaluator(
             csv_path="datasets/mortgage_applications.csv",
-            avg_salary=35000
+            avg_salary=35000,
+            use_independent_test=True,  # Use separate test dataset 
+            test_scenario="economic_downturn"  # Stress test scenario
         )
         
         # Generate comprehensive evaluation report

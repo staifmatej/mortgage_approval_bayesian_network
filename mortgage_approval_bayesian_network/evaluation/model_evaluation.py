@@ -1,4 +1,5 @@
 """Module for quantitative evaluation of the Gaussian Bayesian Network model."""
+import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -10,6 +11,7 @@ import warnings
 from gaussian_bayesian_network import GaussianBayesianNetwork
 from data_generation_realistic import DataGenerator, encode_age_group
 from main import InputHandler
+from evaluation.test_data_generator import TestDataGenerator
 from utils.constants import S_GREEN, E_GREEN, S_CYAN, E_CYAN, S_YELLOW, E_YELLOW
 
 warnings.filterwarnings('ignore')
@@ -17,18 +19,28 @@ warnings.filterwarnings('ignore')
 class ModelEvaluator:
     """Comprehensive evaluation suite for mortgage approval model."""
     
-    def __init__(self, csv_path="datasets/mortgage_applications.csv", avg_salary=35000):
+    def __init__(self, csv_path="datasets/mortgage_applications.csv", avg_salary=35000, 
+                 use_independent_test=True, test_scenario="economic_downturn"):
         """Initialize evaluator with dataset path and parameters."""
-        self.csv_path = csv_path
+        self.csv_path = csv_path  # Training data path
         self.avg_salary = avg_salary
+        self.use_independent_test = use_independent_test
+        self.test_scenario = test_scenario
         self.model = None
         self.test_data = None
+        self.test_csv_path = None
         self.predictions = None
         self.probabilities = None
         
     def load_model_and_data(self):
         """Load trained model and prepare test dataset."""
         print(f"{S_CYAN}Loading model and preparing evaluation dataset...{E_CYAN}")
+        
+        # Check if training data exists, if not generate it
+        import os
+        if not os.path.exists(self.csv_path):
+            print(f"{S_YELLOW}Training dataset not found. Generating training data...{E_YELLOW}")
+            self._generate_training_data()
         
         # Load the trained model and train it properly
         self.model = GaussianBayesianNetwork(csv_path=self.csv_path, avg_salary=self.avg_salary)
@@ -40,13 +52,49 @@ class ModelEvaluator:
         self.input_handler.avg_salary = self.avg_salary
         self.input_handler.interest_rate = 0.045
         
-        # Load test data
-        try:
-            self.test_data = pd.read_csv(self.csv_path)
-            print(f"{S_GREEN}☑ Loaded {len(self.test_data)} records for evaluation{E_GREEN}")
-        except FileNotFoundError:
-            print("Dataset not found. Generating new evaluation dataset...")
-            self._generate_evaluation_data()
+        # Generate or load independent test data
+        if self.use_independent_test:
+            print(f"{S_CYAN}Generating independent test dataset (scenario: {self.test_scenario}){E_CYAN}")
+            
+            test_generator = TestDataGenerator(self.avg_salary, 0.045)
+            self.test_csv_path, test_params = test_generator.generate_stress_test_data(
+                num_records=5000, 
+                scenario=self.test_scenario
+            )
+            
+            # Show parameter differences
+            print(f"  Parameter differences from training:")
+            print(f"    Salary: {test_params['salary_change']:+.1%}")
+            print(f"    Interest Rate: {test_params['rate_change']:+.1%}")
+            
+            # Load independent test data
+            self.test_data = pd.read_csv(self.test_csv_path)
+            print(f"{S_GREEN}☑ Generated independent test dataset: {len(self.test_data)} records{E_GREEN}")
+            
+        else:
+            # Use same dataset as training (original approach)
+            try:
+                self.test_data = pd.read_csv(self.csv_path)
+                self.test_csv_path = self.csv_path
+                print(f"{S_GREEN}☑ Using training dataset for evaluation: {len(self.test_data)} records{E_GREEN}")
+            except FileNotFoundError:
+                print("Dataset not found. Generating new evaluation dataset...")
+                self._generate_evaluation_data()
+    
+    def _generate_training_data(self, num_records=100000):
+        """Generate training dataset if it doesn't exist."""
+        print(f"{S_CYAN}Generating training dataset with {num_records:,} records...{E_CYAN}")
+        
+        # Create datasets directory
+        os.makedirs("datasets", exist_ok=True)
+        
+        # Generate training data
+        train_generator = DataGenerator(self.avg_salary, 0.045, num_records)
+        train_generator.csv_path = self.csv_path
+        train_generator.generate_realistic_data(True)  # True = save to file
+        train_generator.remove_wrong_rows(False, None)  # False = no verbose, None = no progress bar
+        
+        print(f"{S_GREEN}✓ Generated training dataset: {self.csv_path}{E_GREEN}")
             
     def _generate_evaluation_data(self, num_records=5000):
         """Generate fresh evaluation dataset."""
@@ -194,6 +242,13 @@ class ModelEvaluator:
             recall = tp / (tp + fn) if (tp + fn) > 0 else 0
             specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
             f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+            
+            # Calculate ROC AUC
+            try:
+                fpr, tpr, _ = roc_curve(y_true, y_prob)
+                roc_auc = auc(fpr, tpr)
+            except:
+                roc_auc = 0.5
 
         else:
             print("Warning: Only one class present in true labels")
@@ -306,6 +361,9 @@ class ModelEvaluator:
         # Load model and data
         self.load_model_and_data()
         
+        # Compare distributions if using independent test
+        self.compare_train_test_distributions()
+        
         # Generate predictions
         self.generate_predictions()
         
@@ -344,8 +402,62 @@ class ModelEvaluator:
             pass  # Silent failure
             
         return metrics
+    
+    def compare_train_test_distributions(self):
+        """Compare key statistical distributions between training and test data."""
+        
+        if not self.use_independent_test:
+            print(f"{S_YELLOW}Skipping distribution comparison (using same dataset){E_YELLOW}")
+            return
+            
+        print(f"\n=== TRAINING vs TEST DATA COMPARISON ===")
+        
+        try:
+            train_df = pd.read_csv(self.csv_path)
+            test_df = pd.read_csv(self.test_csv_path)
+            
+            # Key metrics to compare
+            key_metrics = [
+                'reported_monthly_income', 'total_existing_debt', 
+                'loan_amount', 'monthly_payment', 'loan_approved'
+            ]
+            
+            print(f"Training dataset: {len(train_df)} records")
+            print(f"Test dataset: {len(test_df)} records")
+            print("\nDistribution comparison:")
+            
+            for metric in key_metrics:
+                if metric in train_df.columns and metric in test_df.columns:
+                    train_mean = train_df[metric].mean()
+                    test_mean = test_df[metric].mean()
+                    train_std = train_df[metric].std()
+                    test_std = test_df[metric].std()
+                    
+                    mean_diff_pct = ((test_mean - train_mean) / train_mean) * 100
+                    
+                    print(f"\n  {metric}:")
+                    print(f"    Training: μ={train_mean:,.0f}, σ={train_std:,.0f}")
+                    print(f"    Test:     μ={test_mean:,.0f}, σ={test_std:,.0f}")
+                    print(f"    Difference: {mean_diff_pct:+.1f}%")
+                    
+            # Show loan approval rate difference
+            if 'loan_approved' in train_df.columns and 'loan_approved' in test_df.columns:
+                train_approval_rate = (train_df['loan_approved'] >= 0.5).mean()
+                test_approval_rate = (test_df['loan_approved'] >= 0.5).mean()
+                approval_diff = (test_approval_rate - train_approval_rate) * 100
+                
+                print(f"\nLoan Approval Rates:")
+                print(f"  Training: {train_approval_rate:.1%}")
+                print(f"  Test:     {test_approval_rate:.1%}")
+                print(f"  Difference: {approval_diff:+.1f} percentage points\n")
+                
+        except Exception as e:
+            print(f"Error comparing distributions: {e}")
 
 if __name__ == "__main__":
-    # Example usage
-    evaluator = ModelEvaluator()
+    # Example usage - with independent test data
+    evaluator = ModelEvaluator(
+        use_independent_test=True,
+        test_scenario="economic_downturn"
+    )
     metrics = evaluator.generate_evaluation_report()
