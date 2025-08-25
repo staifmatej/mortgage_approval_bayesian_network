@@ -6,14 +6,14 @@ import traceback
 import pandas as pd
 import numpy as np
 import tabulate
-from gaussian_bayesian_network import GaussianBayesianNetwork
+from gaussian_bayesian_network import GaussianBayesianNetwork  # pylint: disable=import-error
 
-from data_generation_realistic import encode_age_group
-from data_generation_realistic import DataGenerator
-from utils.error_print import print_error_handling, print_invalid_input
-from utils.constants import S_RED, E_RED, S_GREEN, E_GREEN, S_YELLOW, E_YELLOW, S_CYAN, E_CYAN, S_BOLD, E_BOLD
-from utils.print_press_enter_to_continue import print_press_enter_to_continue
-from visualize_network import create_bayesian_network_visualization
+from data_generation_realistic import encode_age_group  # pylint: disable=import-error
+from data_generation_realistic import DataGenerator  # pylint: disable=import-error
+from utils.error_print import print_error_handling, print_invalid_input  # pylint: disable=import-error
+from utils.constants import S_RED, E_RED, S_GREEN, E_GREEN, S_YELLOW, E_YELLOW, S_CYAN, E_CYAN, S_BOLD, E_BOLD  # pylint: disable=import-error
+from utils.print_press_enter_to_continue import print_press_enter_to_continue  # pylint: disable=import-error
+from visualize_network import create_bayesian_network_visualization  # pylint: disable=import-error
 
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 

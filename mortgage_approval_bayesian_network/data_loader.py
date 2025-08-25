@@ -1,7 +1,7 @@
 """Module for loading and managing loan application dataset from CSV files."""
 import pandas as pd
 
-from utils.error_print import print_error_handling
+from utils.error_print import print_error_handling  # pylint: disable=import-error
 
 class LoanDataLoader:
     """Handles loading and accessing loan application data from CSV files."""

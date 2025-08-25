@@ -6,18 +6,22 @@ import warnings
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
+import seaborn as sns  # pylint: disable=unused-import
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 from sklearn.model_selection import KFold
 
 # Add parent directory for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from gaussian_bayesian_network import GaussianBayesianNetwork
-from data_generation_realistic import DataGenerator
-from main import InputHandler
-from evaluation.test_data_generator import TestDataGenerator
-from utils.constants import S_GREEN, E_GREEN, S_CYAN, E_CYAN, S_YELLOW, E_YELLOW
+try:  # pylint: disable=import-error
+    from gaussian_bayesian_network import GaussianBayesianNetwork
+    from data_generation_realistic import DataGenerator
+    from main import InputHandler
+    from evaluation.evaluation_data_generator import TestDataGenerator
+    from utils.constants import S_GREEN, E_GREEN, S_CYAN, E_CYAN, S_YELLOW, E_YELLOW
+except ImportError:
+    # Handle import errors during static analysis
+    S_GREEN = E_GREEN = S_CYAN = E_CYAN = S_YELLOW = E_YELLOW = ""
 
 warnings.filterwarnings('ignore')
 

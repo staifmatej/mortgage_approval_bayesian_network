@@ -5,9 +5,9 @@ import warnings
 logging.getLogger('numexpr').setLevel(logging.WARNING) # INFO:numexpr.utils:NumExpr
 from pgmpy.models import LinearGaussianBayesianNetwork  # pylint: disable=wrong-import-position
 
-from data_loader import LoanDataLoader # pylint: disable=wrong-import-position
-from utils.error_print import print_error_handling, print_warning_handling # pylint: disable=wrong-import-position
-from utils.constants import S_GREEN, E_GREEN, S_BOLD, E_BOLD, S_CYAN, E_CYAN # pylint: disable=wrong-import-position
+from data_loader import LoanDataLoader  # pylint: disable=wrong-import-position,import-error
+from utils.error_print import print_error_handling, print_warning_handling  # pylint: disable=wrong-import-position,import-error
+from utils.constants import S_GREEN, E_GREEN, S_BOLD, E_BOLD, S_CYAN, E_CYAN  # pylint: disable=wrong-import-position,import-error
 
 warnings.filterwarnings('ignore',category=RuntimeWarning, module='sklearn')
 

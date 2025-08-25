@@ -1,6 +1,6 @@
 """Module for formatted error and warning message printing with color support."""
 import sys
-from utils.constants import S_RED, E_RED, S_YELLOW, E_YELLOW
+from utils.constants import S_RED, E_RED, S_YELLOW, E_YELLOW  # pylint: disable=import-error
 
 def print_error_handling(string: str):
     """Print error message in red color and exit program."""

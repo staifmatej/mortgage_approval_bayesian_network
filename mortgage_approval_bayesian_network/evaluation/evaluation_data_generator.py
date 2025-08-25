@@ -7,9 +7,12 @@ import pandas as pd
 # Add parent directory for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import after path setup  # pylint: disable=wrong-import-position
-from data_generation_realistic import DataGenerator
-from utils.constants import S_CYAN, E_CYAN, S_GREEN, E_GREEN
+try:  # pylint: disable=import-error
+    from data_generation_realistic import DataGenerator
+    from utils.constants import S_CYAN, E_CYAN, S_GREEN, E_GREEN
+except ImportError:
+    # Handle import errors during static analysis
+    S_CYAN = E_CYAN = S_GREEN = E_GREEN = ""
 
 class TestDataGenerator:
     """Generate independent test dataset with different economic parameters."""

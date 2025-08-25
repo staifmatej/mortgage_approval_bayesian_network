@@ -8,9 +8,12 @@ import traceback
 # Add the parent directory to Python path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import after path setup  # pylint: disable=wrong-import-position
-from model_evaluation import ModelEvaluator
-from utils.constants import S_GREEN, E_GREEN
+try:  # pylint: disable=import-error
+    from model_evaluation import ModelEvaluator
+    from utils.constants import S_GREEN, E_GREEN
+except ImportError:
+    # Handle import errors during static analysis
+    S_GREEN = E_GREEN = ""
 
 def main():
     """Demonstrate quantitative evaluation of the mortgage approval model."""

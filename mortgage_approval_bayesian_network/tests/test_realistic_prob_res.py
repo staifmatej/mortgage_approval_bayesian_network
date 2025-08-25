@@ -5,7 +5,7 @@ import unittest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from main import InputHandler  # pylint: disable=wrong-import-position
+from main import InputHandler  # pylint: disable=wrong-import-position,import-error
 
 
 class TestRealisticProbResults(unittest.TestCase):  # pylint: disable=too-many-public-methods

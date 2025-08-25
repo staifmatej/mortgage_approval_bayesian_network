@@ -6,8 +6,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
-from gaussian_bayesian_network import GaussianBayesianNetwork
-from utils.constants import S_CYAN, E_CYAN
+from gaussian_bayesian_network import GaussianBayesianNetwork  # pylint: disable=import-error
+from utils.constants import S_CYAN, E_CYAN  # pylint: disable=import-error
 
 
 def get_edges_from_gbn_model(gbn_model=None):
