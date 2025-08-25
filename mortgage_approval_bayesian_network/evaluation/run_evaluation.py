@@ -3,10 +3,12 @@
 
 import sys
 import os
+import traceback
 
 # Add the parent directory to Python path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Import after path setup  # pylint: disable=wrong-import-position
 from model_evaluation import ModelEvaluator
 from utils.constants import S_GREEN, E_GREEN
 
@@ -18,13 +20,13 @@ def main():
         evaluator = ModelEvaluator(
             csv_path="datasets/mortgage_applications.csv",
             avg_salary=35000,
-            use_independent_test=True,  # Use separate test dataset 
+            use_independent_test=True,  # Use separate test dataset
             test_scenario="economic_downturn"  # Stress test scenario
         )
-        
+
         # Generate comprehensive evaluation report
         metrics = evaluator.generate_evaluation_report()
-        
+
         print(f"\n{S_GREEN}EVALUATION COMPLETED SUCCESSFULLY!{E_GREEN}")
         print("\nKey Results:")
         print(f"   • Accuracy:  {metrics['accuracy']:.3f}")
@@ -32,18 +34,17 @@ def main():
         print(f"   • Recall:    {metrics['recall']:.3f}")
         print(f"   • F1-Score:  {metrics['f1']:.3f}")
         print(f"   • ROC AUC:   {metrics['auc']:.3f}")
-        
+
         print("\nGenerated Files:")
         print("   • evaluation_results/confusion_matrix.png")
-        print("   • evaluation_results/roc_curve.png") 
+        print("   • evaluation_results/roc_curve.png")
         print("   • evaluation_results/metrics_summary.txt\n")
 
-    except Exception as e:
+    except (ValueError, FileNotFoundError, ImportError, AttributeError) as e:
         print(f"Evaluation failed: {e}")
-        import traceback
         traceback.print_exc()
         return 1
-        
+
     return 0
 
 if __name__ == "__main__":
