@@ -52,7 +52,7 @@ More detailed information is provided in the report [staifmatej-report.pdf](stai
 
 ## Evaluation
 
-The model achieves **~94.2% accuracy** on test data,
+The model achieves **~93.2% accuracy** on test data,
    demonstrating excellent predictive capability for
   mortgage approval decisions. Evaluation includes
   confusion matrix and ROC curve visualizations with
