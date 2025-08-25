@@ -8,8 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns  # pylint: disable=unused-import
 from sklearn.metrics import confusion_matrix, roc_curve, auc
-from sklearn.model_selection import cross_val_score, StratifiedKFold
-from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.model_selection import StratifiedKFold
 from sklearn.utils.validation import check_X_y, check_array  # pylint: disable=unused-import
 
 # Add parent directory for imports
@@ -186,24 +185,24 @@ class ModelEvaluator:  # pylint: disable=too-many-instance-attributes
             'credit_history': credit_history
         }
 
-    def _create_proper_ground_truth(self, data):
+    def _create_proper_ground_truth(self, data):  # pylint: disable=too-many-branches,too-many-locals,too-many-statements
         """Create ground truth labels based on realistic financial criteria."""
         y_true = []
-        
+
         for _, row in data.iterrows():
             # Financial indicators
             income = row.get('reported_monthly_income', 0)
-            debt = row.get('total_existing_debt', 0) 
+            debt = row.get('total_existing_debt', 0)
             monthly_payment = row.get('monthly_payment', 0)
             age = row.get('age', 35)
             employment_len = row.get('len_employment', 0)
-            
+
             # String categorical variables
             credit_history = str(row.get('credit_history', 'fair')).strip().lower()
             employment_type = str(row.get('employment_type', 'unemployed')).strip().lower()
             government_employee = str(row.get('government_employee', 'no')).strip().lower()
             housing_status = str(row.get('housing_status', 'rent')).strip().lower()
-            
+
             # Calculate financial ratios
             if income > 0:
                 payment_to_income = monthly_payment / income
@@ -211,40 +210,40 @@ class ModelEvaluator:  # pylint: disable=too-many-instance-attributes
             else:
                 payment_to_income = 1.0
                 debt_to_income = 10.0
-                
+
             # Credit score mapping
             credit_score_map = {
                 'excellent': 3, 'good': 2, 'fair': 1, 'bad': 0, 'poor': 0
             }
             credit_score = credit_score_map.get(credit_history, 1)
-            
+
             # Employment stability score
             employment_score = 0
             if employment_type in ['permanent', 'full-time']:
                 employment_score += 2
             elif employment_type in ['temporary', 'part-time']:
                 employment_score += 1
-                
+
             if employment_len >= 2:
                 employment_score += 1
             if employment_len >= 5:
                 employment_score += 1
-                
+
             # Government employee bonus (Czech context)
             if government_employee == 'yes':
                 employment_score += 1
-                
+
             # Housing stability
             housing_score = 0
             if housing_status in ['own', 'mortgage']:
                 housing_score = 1
-                
+
             # Age factor
             age_score = 1 if 25 <= age <= 55 else 0
-            
+
             # Decision logic based on multiple factors
             approval_score = 0
-            
+
             # Payment affordability (most important)
             if payment_to_income <= 0.25:
                 approval_score += 4
@@ -252,27 +251,27 @@ class ModelEvaluator:  # pylint: disable=too-many-instance-attributes
                 approval_score += 2
             elif payment_to_income <= 0.45:
                 approval_score += 1
-                
+
             # Debt burden
             if debt_to_income <= 1.0:
                 approval_score += 2
             elif debt_to_income <= 2.0:
                 approval_score += 1
-                
+
             # Add other factors
             approval_score += credit_score
             approval_score += min(employment_score, 3)  # Cap at 3
             approval_score += housing_score
             approval_score += age_score
-            
+
             # Minimum income threshold
             if income < 20000:  # Below minimum wage
                 approval_score -= 3
-                
+
             # Final decision (threshold tuned for ~15% approval rate)
             approval = 1 if approval_score >= 8 else 0
             y_true.append(approval)
-            
+
         return np.array(y_true)
 
     def _fallback_prediction(self, row):
@@ -419,47 +418,47 @@ class ModelEvaluator:  # pylint: disable=too-many-instance-attributes
         except (ValueError, FileNotFoundError) as e:
             print(f"ROC curve generation failed: {e}")
 
-    def cross_validate(self, k_folds=5):
+    def cross_validate(self, k_folds=5):  # pylint: disable=too-many-nested-blocks,too-many-locals
         """Perform proper k-fold cross-validation using actual Bayesian Network."""
-        try:
+        try:  # pylint: disable=too-many-nested-blocks
             train_data = pd.read_csv(self.csv_path)
-            
+
             # Use larger sample for more reliable CV
             if len(train_data) > 10000:
                 train_data = train_data.sample(n=10000, random_state=42)
-            
+
             # Create proper ground truth based on financial criteria
             y = self._create_proper_ground_truth(train_data)
-            
+
             print(f"Cross-validation on {len(train_data)} samples with {len(np.unique(y))} classes")
-            
+
             cv_scores = []
             skf = StratifiedKFold(n_splits=k_folds, shuffle=True, random_state=42)
-            
+
             for fold_idx, (train_idx, val_idx) in enumerate(skf.split(train_data, y)):
                 print(f"  Fold {fold_idx + 1}/{k_folds}...")
-                
+
                 # Split data
                 fold_train = train_data.iloc[train_idx]
-                fold_val = train_data.iloc[val_idx] 
+                fold_val = train_data.iloc[val_idx]
                 fold_y_val = y[val_idx]
-                
+
                 # Create temporary CSV for this fold
-                import tempfile
+                import tempfile  # pylint: disable=import-outside-toplevel
                 with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as tmp_file:
                     fold_train.to_csv(tmp_file.name, index=False)
                     tmp_csv_path = tmp_file.name
-                
+
                 try:
                     # Train model on fold training data
                     fold_model = GaussianBayesianNetwork(csv_path=tmp_csv_path, avg_salary=self.avg_salary)
                     fold_model.check_model_gbn()
-                    
+
                     fold_input_handler = InputHandler()
                     fold_input_handler.csv_path = tmp_csv_path
                     fold_input_handler.avg_salary = self.avg_salary
                     fold_input_handler.interest_rate = 0.045
-                    
+
                     # Generate predictions for validation set
                     fold_predictions = []
                     for _, row in fold_val.iterrows():
@@ -467,33 +466,33 @@ class ModelEvaluator:  # pylint: disable=too-many-instance-attributes
                             mortgage_data = self._row_to_mortgage_data(row)
                             loan_amount = row.get('loan_amount', 2000000)
                             loan_term = row.get('loan_term', 30)
-                            
+
                             prob = fold_input_handler.predict_loan_approval(
                                 fold_model, mortgage_data, loan_amount, loan_term
                             )
-                            
+
                             # Handle invalid probabilities
                             if not 0 <= prob <= 1 or prob == 0.0:
                                 prob = self._fallback_prediction(row)
-                                
+
                             fold_predictions.append(1 if prob >= 0.5 else 0)
-                            
-                        except Exception:
+
+                        except (ValueError, KeyError, AttributeError, ImportError):
                             fold_predictions.append(0)  # Conservative fallback
-                    
+
                     # Calculate fold accuracy
                     fold_acc = np.mean(np.array(fold_predictions) == fold_y_val[:len(fold_predictions)])
                     cv_scores.append(fold_acc)
                     print(f"    Fold {fold_idx + 1} accuracy: {fold_acc:.3f}")
-                    
+
                 finally:
                     # Cleanup
                     if os.path.exists(tmp_csv_path):
                         os.unlink(tmp_csv_path)
-            
+
             print(f"CV Mean: {np.mean(cv_scores):.3f} ± {np.std(cv_scores):.3f}")
             return cv_scores
-            
+
         except (ValueError, TypeError, ImportError) as e:
             print(f"Cross-validation failed: {e}")
             # Return realistic scores based on actual model limitations
