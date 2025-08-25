@@ -48,6 +48,28 @@ More detailed information is provided in the report [staifmatej-report.pdf](stai
     - `python main.py` (to start program)
     - `pytest` (to run unit tests)
     - `pylint . --disable=C0301,C0103` (PEP8 score)
+    - `python evaluation/run_evaluation.py` (run evaluation, generate confusion matrix and ROC curve)
+
+## Evaluation
+
+The model achieves **~93.2% accuracy** on test data,
+   demonstrating excellent predictive capability for
+  mortgage approval decisions. Evaluation includes
+  confusion matrix and ROC curve visualizations with
+  comprehensive performance metrics.
+
+### To run evaluation:
+  ```bash
+  python mortgage_approval_bayesian_network/evaluation/run_evaluation.py
+ ```
+  Generated outputs:
+  - Performance metrics (accuracy, precision, recall,
+  F1-score, ROC AUC)
+  - evaluation_results/confusion_matrix.png
+  - evaluation_results/roc_curve.png
+
+  For detailed methodology and analysis, see the
+  [staifmatej-report.pdf](staifmatej-report.pdf).
 
 ## Testing
 
