@@ -68,7 +68,7 @@ The model achieves **~93.2% accuracy** on test data,
   - evaluation_results/confusion_matrix.png
   - evaluation_results/roc_curve.png
 
-  For detailed methodology and analysis, see the
+  For detailed methodology and results see the
   [staifmatej-report.pdf](staifmatej-report.pdf).
 
 ## Testing
