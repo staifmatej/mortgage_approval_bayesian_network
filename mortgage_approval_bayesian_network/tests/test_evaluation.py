@@ -10,7 +10,7 @@ import pandas as pd
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from evaluation.model_evaluation import ModelEvaluator # pylint: disable=wrong-import-position
+from evaluation.model_evaluation import ModelEvaluator # pylint: disable=wrong-import-position,import-error
 
 
 class TestEvaluationSystem(unittest.TestCase):
@@ -65,7 +65,7 @@ class TestEvaluationSystem(unittest.TestCase):
                 unique_scores = len(set(scores))
                 self.assertGreaterEqual(unique_scores, 1)
 
-        except Exceptionfr5vb=] as e:
+        except (ImportError, ModuleNotFoundError, AttributeError) as e:
             self.skipTest(f"Cross-validation failed due to dependencies: {e}")
 
     def test_metrics_calculation_correctness(self):
@@ -96,7 +96,7 @@ class TestEvaluationSystem(unittest.TestCase):
 
         try:
             evaluator.plot_roc_curve(temp_plot_path)
-        except Exception as e:
+        except (ValueError, AttributeError, ImportError) as e:
             if "must be generated first" in str(e):
                 self.skipTest("Expected error for missing data")
             else:
@@ -156,7 +156,7 @@ class TestEvaluationSystem(unittest.TestCase):
                     self.assertGreaterEqual(score, 0.0)
                     self.assertLessEqual(score, 1.0)
 
-        except Exception as e:
+        except (ImportError, ModuleNotFoundError, AttributeError, ValueError) as e:
             self.skipTest(f"CV test skipped due to dependencies: {e}")
 
     def test_independent_test_data_generation(self):
@@ -223,7 +223,7 @@ class TestEvaluationSystem(unittest.TestCase):
             self.assertLess(execution_time, 10)
             self.assertIsNotNone(metrics)
 
-        except Exception as e:
+        except (ImportError, ModuleNotFoundError, ValueError, AttributeError) as e:
             self.skipTest(f"Performance test skipped: {e}")
 
 
