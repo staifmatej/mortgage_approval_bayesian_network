@@ -52,7 +52,7 @@ More detailed information is provided in the report [staifmatej-report.pdf](stai
     - `pylint . --disable=C0301,C0103` (PEP8 score)
     - `python evaluation/run_evaluation.py` (run evaluation, generate confusion matrix and ROC curve)
 
-## Evaluation
+## Stress-Testing Evaluation
 
  The model achieves **approximately 70.9\% accuracy**
    when evaluated under **economic stress
