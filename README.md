@@ -37,7 +37,7 @@ More detailed information is provided in the report [staifmatej-report.pdf](stai
 
 - Navigate to the project directory (to the root folder)
 
-    - `cd mortgage_approval_bayesian_network`
+    - `cd mortgage_approval_bayesian_network/mortgage_approval_bayesian_network`
 
 - Create virtual environment and install dependencies:
 
