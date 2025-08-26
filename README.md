@@ -4,7 +4,9 @@
 
 ## Abstract
 
-This project simulates an internal mathematical model for Bayesianhill Bank that trains a **Linear Gaussian Bayesian Network (LGBN)** using the **pgmpy library** on CSV data from clients who have already repaid or defaulted on their mortgages. Based on this historical data, the **model calculates the probability that a new mortgage applicant will successfully repay their loan** when a banker inputs their information into the system, including loan amount and repayment period to assess risk based on borrowing parameters.
+This project simulates an internal mathematical model for Bayesianhill & Co. Bank that trains a **Linear Gaussian Bayesian Network (LGBN)** using the **pgmpy library** on CSV data from clients who have already repaid or defaulted on their mortgages. Based on this historical data, the **model calculates the probability that a new mortgage applicant will successfully repay their loan** when a banker inputs their information into the system, including loan amount and repayment period to assess risk based on borrowing parameters.
+
+The model achieves **approximately 70.9\% accuracy** when evaluated under **economic stress conditions**, specifically an "economic downturn" scenario featuring 15\% reduced average salaries and 30\% increased interest rates compared to training data. This performance demonstrates the model's **robustness and generalization capability** when faced with **sudden changes in financial market conditions**.
 
 The model is trained on a CSV file that is synthetically yet realistically generated, though the program also offers training on any other arbitrary CSV file within the folder. The goal of this project was to implement and familiarize myself with Bayesian Networks (initially I experimented with Discrete Bayesian Networks using the Pomegranate library). It is important to note that the model is trained on synthetic data and evaluates mortgage approval probability based on this training, which should be taken into consideration. Nevertheless, the model is highly realistic, and I successfully fine-tuned it to demonstrate the practical power of Bayesian Networks in a compelling and realistic manner.
 
@@ -83,6 +85,11 @@ More detailed information is provided in the report [staifmatej-report.pdf](stai
 ### To run evaluation:
   ```bash
   python mortgage_approval_bayesian_network/evaluation/run_evaluation.py
+ ```
+or from **root folder** with command:
+
+  ```bash
+  python evaluation/run_evaluation.py
  ```
   Generated outputs:
   - Performance metrics (accuracy, precision, recall,
