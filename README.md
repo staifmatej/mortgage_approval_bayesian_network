@@ -121,8 +121,10 @@ This will analyze all Python files while ignoring line length (C0301) and naming
 
 ## LLM (Large Language Models) Usage Declaration
 
-I completed the main work on this project myself, but I used LLM tools for specific purposes. Since English is not my native language and I want to improve it further, and I want to use international language at a professional level in my projects too, I consulted with LLM models for grammar corrections, translations, and modifications. Specifically for English, I used OpenAI's `Chat-GPT 03-high` model.
+I completed the main work on this project myself, but I used LLM tools for specific purposes. Since English is not my native language and I want to improve it further, and I want to use international language at a professional level in my projects too, I consulted with LLM models for grammar corrections, translations, and modifications. Specifically for English, I used Anthropic `claude-sonnet-4` model.
 
 * I **wrote** `staifmatej-report.pdf` **100% in my own words**, but then I modified it to English using LLM with grammar corrections.
 
-* I did the same thing with docstrings and comments in the code, which **I always wrote myself**, but sometimes when I was not sure about my 100% grammatical accuracy, I translated them using LLM model.
+* I did the same thing with `README.md` in the repository, which I wrote myself, but afterwards I modified it using an LLM. I used model `claude-sonnet-4`.
+
+* I did the same thing with docstrings and comments in the code, which **I always wrote myself**, but sometimes when I was not sure about my 100% grammatical accuracy, I translated them using LLM model. I used model `claude-sonnet-4`.
