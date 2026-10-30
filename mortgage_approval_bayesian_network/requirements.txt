@@ -23,7 +23,7 @@ rich==13.7.1
 
 # Development dependencies.
 pytest==8.3.4
-pylint==3.2.5
+pylint==4.0.9
 
 # Evaluation dependencies.
 scikit-learn==1.5.2
